@@ -25,6 +25,46 @@ Ranks are deterministic inspection tools, not passwords to reuse or an
 authentication primitive. The ordering depends on the exact policy and symbol
 order.
 
+## Deterministic audit CLI
+
+The CLI never samples a password. It inspects the fixed visible-ASCII profile,
+emits exact state-space integers, and produces stable machine-readable data for
+review and plotting:
+
+```bash
+password-policy-lab inspect --length 20 --format json
+password-policy-lab sweep \
+  --start-length 8 \
+  --end-length 32 \
+  --format csv
+```
+
+`inspect` reports valid, unconstrained, and excluded counts; an exact reduced
+satisfying fraction; exact floor/ceiling bounds on `log2(valid)`; the rank
+interval; bounded-DP upper bounds; and a SHA-256 fingerprint of the complete
+ordered policy. Arbitrary-size integers are decimal strings in JSON so
+JavaScript readers cannot silently round them. Outputs contain no timestamps,
+machine paths, locale formatting, or randomness.
+
+`rank` and `unrank` exist only for public deterministic test vectors. A rank is
+a reversible encoding of its candidate under the fingerprinted policy, so rank
+output is secret-equivalent. Both commands require
+`--acknowledge-reversible-output`; `rank` accepts the candidate only through
+hidden terminal input or bounded standard input, never an argument. Do not use
+either command with a credential:
+
+```bash
+password-policy-lab unrank \
+  --length 8 \
+  --rank 0 \
+  --acknowledge-reversible-output \
+  --format json
+```
+
+The entropy bounds describe a uniform draw from the counted state space. They
+are not a password-strength score and say nothing about a human-chosen value or
+an online authentication system.
+
 ## Local web interface
 
 Install the project, start its pinned WSGI server on loopback, and open

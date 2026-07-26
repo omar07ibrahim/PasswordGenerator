@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import re
-import string
 from collections.abc import Mapping
 
 from flask import Flask, Response, render_template, request
 from werkzeug.exceptions import BadRequest, RequestEntityTooLarge
 
-from password_policy_lab.policy import CharacterClass, PasswordPolicy
+from password_policy_lab.policy import PasswordPolicy
+from password_policy_lab.profiles import visible_ascii_policy
 from password_policy_lab.space import PasswordSpace
 
 MIN_PASSWORD_LENGTH = 8
@@ -56,15 +56,7 @@ class _UnsupportedFormMediaType(_FormValidationError):
 
 
 def _default_policy(length: int) -> PasswordPolicy:
-    return PasswordPolicy(
-        length=length,
-        classes=(
-            CharacterClass("lower", string.ascii_lowercase, 1),
-            CharacterClass("upper", string.ascii_uppercase, 1),
-            CharacterClass("digits", string.digits, 1),
-            CharacterClass("punctuation", string.punctuation, 1),
-        ),
-    )
+    return visible_ascii_policy(length)
 
 
 def _parse_length() -> int:
