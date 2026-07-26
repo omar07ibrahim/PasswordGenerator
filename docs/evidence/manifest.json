@@ -1,0 +1,414 @@
+{
+  "artifacts": [
+    {
+      "assertions": [
+        "architecture imports and calls verified from AST",
+        "web and CLI converge on one exact core"
+      ],
+      "bytes": 9000,
+      "height": 880,
+      "media_type": "image/svg+xml",
+      "path": "docs/assets/architecture.svg",
+      "sha256": "d7fd3cfc31dff4cb1729d5f8716b1347e3c30bde893c7b7fdace102aa950cde2",
+      "width": 1600
+    },
+    {
+      "assertions": [
+        "rendered from exact deterministic CLI transcript",
+        "sampled candidate absent"
+      ],
+      "bytes": 126955,
+      "height": 946,
+      "media_type": "image/png",
+      "path": "docs/assets/cli-inspect.png",
+      "sha256": "9d0aadb8cc7338e9adaf9b6796167d9c0862ab2631a8fd274cecd4e2cd727aad",
+      "width": 1600
+    },
+    {
+      "assertions": [
+        "rendered from normalized real gate transcript",
+        "all commands exited zero"
+      ],
+      "bytes": 91467,
+      "height": 976,
+      "media_type": "image/png",
+      "path": "docs/assets/quality-gate.png",
+      "sha256": "66e179b7c8b06cf579ec5e29a168ec1c1422c9cc8724523666506003d12f68a5",
+      "width": 1600
+    },
+    {
+      "assertions": [
+        "commands verified against package metadata",
+        "repository-local evidence workflow"
+      ],
+      "bytes": 6122,
+      "height": 650,
+      "media_type": "image/svg+xml",
+      "path": "docs/assets/setup-workflow.svg",
+      "sha256": "88693e52fb683a5263c70342245d779f9be31f8ab7aa504878c35bb91c6cbb82",
+      "width": 1600
+    },
+    {
+      "assertions": [
+        "two aligned panels from 25 exact CLI rows",
+        "satisfying share uses a linear 0-100 percent scale"
+      ],
+      "bytes": 113749,
+      "height": 1000,
+      "media_type": "image/png",
+      "path": "docs/assets/state-space-sweep.png",
+      "sha256": "24291d4e33ffd23efad729d12d58476673dbd86ae65950024ec0e01eb137cbec",
+      "width": 1600
+    },
+    {
+      "assertions": [
+        "sample_uniform call shape verified from AST",
+        "one randbelow call flows directly into unrank"
+      ],
+      "bytes": 6028,
+      "height": 650,
+      "media_type": "image/svg+xml",
+      "path": "docs/assets/uniform-sampling-flow.svg",
+      "sha256": "306198ee4f57ec467b8bcbbed77a3eb415632559742cfa67239ac12373aa4a3f",
+      "width": 1600
+    },
+    {
+      "assertions": [
+        "real Waitress GET response",
+        "390 pixel viewport without horizontal overflow"
+      ],
+      "bytes": 60475,
+      "height": 844,
+      "media_type": "image/png",
+      "path": "docs/assets/web-home-mobile.png",
+      "sha256": "29bd5ea9354ea7c48f0d57b4a1eb012a2503c37da38f5a5da0078e2836703a96",
+      "width": 390
+    },
+    {
+      "assertions": [
+        "real Waitress GET response",
+        "exact policy details expanded"
+      ],
+      "bytes": 470160,
+      "height": 2419,
+      "media_type": "image/png",
+      "path": "docs/assets/web-home.png",
+      "sha256": "fffa52b478ba62665c346bda982a8576ee67364e3b882e1e29ebe4a05a445019",
+      "width": 1440
+    },
+    {
+      "assertions": [
+        "real Waitress POST response",
+        "invalid length rejected with HTTP 400 before sampling"
+      ],
+      "bytes": 405760,
+      "height": 1811,
+      "media_type": "image/png",
+      "path": "docs/assets/web-invalid-length.png",
+      "sha256": "dda0d85e019ccd4799acd9417a599993df983ff1efe18c76a9b3bcb655fe08d7",
+      "width": 1440
+    },
+    {
+      "assertions": [
+        "three real browser frames",
+        "GET 200 to invalid POST 400 with no sampler call",
+        "plays once with no flashing sequence",
+        "decoded frames preserve the complete browser viewport"
+      ],
+      "bytes": 227247,
+      "frames": 3,
+      "height": 900,
+      "media_type": "image/gif",
+      "path": "docs/assets/web-validation-demo.gif",
+      "sha256": "6274e9dde0f3accc06b28f411f7cd9353877dced023ac8d8f4941702b20e4314",
+      "width": 1080
+    },
+    {
+      "assertions": [
+        "real CLI output",
+        "timestamp and absolute path absent"
+      ],
+      "bytes": 906,
+      "media_type": "text/plain",
+      "path": "docs/evidence/cli-inspect.txt",
+      "sha256": "4cdabfef6d4fd10c9a41867fbfaea943be095b0c77652f9ff1aa68d03554bb15"
+    },
+    {
+      "assertions": [
+        "real normalized command output",
+        "timing and absolute path absent"
+      ],
+      "bytes": 1166,
+      "media_type": "text/plain",
+      "path": "docs/evidence/quality-gate.txt",
+      "sha256": "18eaf060d51fbaeb8cedec36c18bf2196290d36b66bef1ad2926603cd255e5d7"
+    },
+    {
+      "assertions": [
+        "real CLI output",
+        "inclusive lengths 8 through 32"
+      ],
+      "bytes": 7211,
+      "media_type": "text/csv",
+      "path": "docs/evidence/state-space-sweep.csv",
+      "sha256": "2492533605fdd161ae20ff6473ddb004ccedd36781c7c9287ab89b9ea3b1cdbb"
+    },
+    {
+      "assertions": [
+        "lossless full-resolution browser frame reference",
+        "vertical frame order GET 200 -> input 7 -> POST 400",
+        "three 1080 by 900 frames without gutters or captions"
+      ],
+      "bytes": 354937,
+      "height": 2700,
+      "media_type": "image/png",
+      "path": "docs/evidence/web-validation-reference.png",
+      "sha256": "39a3768f42ca9a83c542fc391a202268aec27c4243b6bbb672ec5c02390a53a0",
+      "width": 1080
+    }
+  ],
+  "capture": {
+    "requests": [
+      {
+        "artifact": "docs/assets/web-home.png",
+        "assertions": [
+          "generated-output absent",
+          "sampler calls 0",
+          "external requests 0",
+          "inspection visible",
+          "no horizontal overflow"
+        ],
+        "method": "GET",
+        "path": "/",
+        "status": 200,
+        "viewport": {
+          "height": 960,
+          "width": 1440
+        }
+      },
+      {
+        "artifact": "docs/assets/web-home-mobile.png",
+        "assertions": [
+          "generated-output absent",
+          "sampler calls 0",
+          "external requests 0",
+          "inspection visible",
+          "no horizontal overflow",
+          "workspace visible at mobile width"
+        ],
+        "method": "GET",
+        "path": "/",
+        "status": 200,
+        "viewport": {
+          "height": 844,
+          "width": 390
+        }
+      },
+      {
+        "artifact": "docs/assets/web-invalid-length.png",
+        "assertions": [
+          "generated-output absent",
+          "sampler calls 0",
+          "external requests 0",
+          "invalid length 7 rejected before generation",
+          "audit metrics withheld",
+          "no horizontal overflow"
+        ],
+        "method": "POST",
+        "path": "/",
+        "status": 400,
+        "viewport": {
+          "height": 960,
+          "width": 1440
+        }
+      },
+      {
+        "artifact": "docs/assets/web-validation-demo.gif",
+        "assertions": [
+          "generated-output absent",
+          "sampler calls 0",
+          "external requests 0",
+          "sequence GET 200 -> input 7 -> POST 400",
+          "audit metrics withheld",
+          "no flashing; two transitions remain below 3 Hz",
+          "decoded GIF frames preserve full viewport composition",
+          "vertical frame order GET 200 -> input 7 -> POST 400",
+          "GIF frames pass independent 17x15 localized fidelity checks",
+          "GIF frames are opaque full-canvas images with disposal 1"
+        ],
+        "method": "GET -> POST",
+        "path": "/",
+        "status": 400,
+        "viewport": {
+          "height": 900,
+          "width": 1080
+        }
+      }
+    ],
+    "sampler_calls": 0,
+    "sampling_guard": "raise-on-call",
+    "server": "waitress"
+  },
+  "evidence": {
+    "cli_inspect": {
+      "contains_candidate": false,
+      "source_command": "password-policy-lab inspect --length 20 --format text"
+    },
+    "diagrams": {
+      "architecture_ast_verified": true,
+      "sampling_ast_verified": true
+    },
+    "quality_gate": {
+      "all_passed": true,
+      "commands": [
+        "python -m ruff check app.py scripts src tests",
+        "python -m ruff format --check app.py scripts src tests",
+        "MYPYPATH=src python -m mypy --strict app.py scripts src tests",
+        "PYTHONPATH=src python -m pytest --cov=password_policy_lab --cov-branch --cov-report=term-missing -q",
+        "python -m pip check"
+      ]
+    },
+    "sweep": {
+      "class_minima": {
+        "digits": 1,
+        "lower": 1,
+        "punctuation": 1,
+        "upper": 1
+      },
+      "inclusive_range": {
+        "end": 32,
+        "start": 8
+      },
+      "profile": "visible-ascii-v1",
+      "rows": 25,
+      "source_command": "password-policy-lab sweep --start-length 8 --end-length 32 --format csv"
+    }
+  },
+  "generator": "scripts/generate_evidence.py",
+  "runtime": {
+    "chromium": "149.0.7827.55",
+    "flask": "3.1.3",
+    "matplotlib": "3.11.1",
+    "numpy": "2.3.5",
+    "pillow": "12.3.0",
+    "platform": "linux/x86_64",
+    "playwright": "1.61.0",
+    "python": "3.12.3",
+    "waitress": "3.0.2"
+  },
+  "schema_version": 1,
+  "source_files": [
+    {
+      "path": "Makefile",
+      "sha256": "dcafae5783472f29ecea4f3029db4f647ef7793a2b4f58a3d0eb9766f937ddd6"
+    },
+    {
+      "path": "README.md",
+      "sha256": "29de5e6ee9f4f4f869202381d1c62f84dbe706d50503ea05ac65dfe962b13bdc"
+    },
+    {
+      "path": "app.py",
+      "sha256": "c62064f5f47fc3d85a17fa97539f45f6346cc81f6591dc18485e2a231f112049"
+    },
+    {
+      "path": "pyproject.toml",
+      "sha256": "f528181eae25e424dd82fc5dbf7c9065c886ef1ab979c97ecf716d9c8e9ca052"
+    },
+    {
+      "path": "scripts/check_evidence.py",
+      "sha256": "96770a1376ee5e2494abbb0b86ecc028392fd771548f12da302c7385474a648f"
+    },
+    {
+      "path": "scripts/evidence_rendering.py",
+      "sha256": "2ee59d600f2880682d9a7763172a16e4f48bd3327cebd2c615c89b4b17644a43"
+    },
+    {
+      "path": "scripts/generate_evidence.py",
+      "sha256": "4574b4a3dc00ce142e677134368962340c3a981f9549736d3892a3d74609915c"
+    },
+    {
+      "path": "src/password_policy_lab/__init__.py",
+      "sha256": "23cb122fab42f49e6843c7ae6ea7bbcba7d9c0971e8f93e451fb9b6d0dc73efa"
+    },
+    {
+      "path": "src/password_policy_lab/__main__.py",
+      "sha256": "529f004dc17fc33f0df9a0fd37338afa2269b073975c4e2d0d8df03b7c7e1067"
+    },
+    {
+      "path": "src/password_policy_lab/cli.py",
+      "sha256": "2c417d5a5f941b8e1898e3d14626dcd9fc2277712367841f709a194ebd7e04fd"
+    },
+    {
+      "path": "src/password_policy_lab/errors.py",
+      "sha256": "21613d041edaea44c38503eb5b543ecf1d406c8c92bab6fbcb40f5a06a6e1dcc"
+    },
+    {
+      "path": "src/password_policy_lab/inspection.py",
+      "sha256": "8af1f3703184acaf0524f2f57a8494128fb56ba8a6c48835f240565a5ce785b0"
+    },
+    {
+      "path": "src/password_policy_lab/policy.py",
+      "sha256": "636112fe3d636c2e87529774ade6c30f9c488ff51f705a6d8663711749ef98be"
+    },
+    {
+      "path": "src/password_policy_lab/profiles.py",
+      "sha256": "1a75d0972e8c93ee2c6a353ed8c328425aa3e6ff33b4bce17097f91809380f6f"
+    },
+    {
+      "path": "src/password_policy_lab/py.typed",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "path": "src/password_policy_lab/space.py",
+      "sha256": "76832b2870aced4d9d2fe8aac67bf21226ab12a9d396d7bc7ec04628ee1c8783"
+    },
+    {
+      "path": "src/password_policy_lab/static/styles.css",
+      "sha256": "e97db9cbbbbfd1483b0a5db254667ec56675f2e28e945d0a067f0ac3a6e0dc08"
+    },
+    {
+      "path": "src/password_policy_lab/templates/index.html",
+      "sha256": "7dae09a227330eb774810a9d861ea925110e95ac1d683fe38170a17052d594c5"
+    },
+    {
+      "path": "src/password_policy_lab/web.py",
+      "sha256": "36d08dee59f7f7d361f7d80b0a3ef7c172bccf8032f827b95d8ef89a2289fba0"
+    },
+    {
+      "path": "tests/test_bijection.py",
+      "sha256": "32bbb5e4ef69117dd7aaa9fbb31ded60b802527d2cc1fcd73a50ce6e13daf682"
+    },
+    {
+      "path": "tests/test_cli.py",
+      "sha256": "12e93f725e570849c588ec631968bf768dbde27121067a88617aef8cbc07ea54"
+    },
+    {
+      "path": "tests/test_counting.py",
+      "sha256": "5f72e9acf6c22d35317549fd13eaf87a6a864d5ad88c1441bfa50850eefa6718"
+    },
+    {
+      "path": "tests/test_evidence.py",
+      "sha256": "db99a5c7678e0d2ec2e2bf8c9c3cab539987e1fdc36161b77f44440a35104049"
+    },
+    {
+      "path": "tests/test_inspection.py",
+      "sha256": "cd6b77b4659b010e5925b3c112676c3a850da139404b5e4e3e84506ac22da74a"
+    },
+    {
+      "path": "tests/test_policy.py",
+      "sha256": "fa5511a54d8ea31e9a2a79c437e4174434459954f4226678a6ee504c2317dbad"
+    },
+    {
+      "path": "tests/test_profiles.py",
+      "sha256": "fe45067ead3d1a6778d8ed541c9668b73245843f18bca264932e8fd194280345"
+    },
+    {
+      "path": "tests/test_sampling.py",
+      "sha256": "b56fb678efd2e2a5abb1f88218a5372b43d4e78b98d49ab112811daf3c7d291e"
+    },
+    {
+      "path": "tests/test_web.py",
+      "sha256": "832b214cf326c703c2f24e2bf920ad9ef4987fb818dc2a9dd94c43ea353488e3"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+.coverage
+.evidence-work/
+.mypy_cache/
+.playwright-browsers/
+.pytest_cache/
+.ruff_cache/
+.venv/
+__pycache__/
+build/
+dist/
+htmlcov/
+*.egg-info/
