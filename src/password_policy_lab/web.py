@@ -8,6 +8,7 @@ from collections.abc import Mapping
 from flask import Flask, Response, render_template, request
 from werkzeug.exceptions import BadRequest, RequestEntityTooLarge
 
+from password_policy_lab.inspection import StateSpaceInspection, inspect_space
 from password_policy_lab.policy import PasswordPolicy
 from password_policy_lab.profiles import visible_ascii_policy
 from password_policy_lab.space import PasswordSpace
@@ -41,7 +42,7 @@ _CONTENT_SECURITY_POLICY = "; ".join(
         "media-src 'none'",
         "object-src 'none'",
         "script-src 'none'",
-        "style-src 'none'",
+        "style-src 'self'",
         "worker-src 'none'",
     )
 )
@@ -83,13 +84,45 @@ def _parse_length() -> int:
 
 def _render_page(
     *,
-    length: int = DEFAULT_PASSWORD_LENGTH,
+    length: int | str = DEFAULT_PASSWORD_LENGTH,
     password: str | None = None,
     error: str | None = None,
+    form_error: bool = False,
+    inspection: StateSpaceInspection | None = None,
 ) -> str:
+    inspection_view: dict[str, object] | None = None
+    if inspection is not None:
+        inspection_view = {
+            "alphabet_size": len(inspection.policy.alphabet),
+            "class_count": len(inspection.policy.classes),
+            "classes": [
+                {
+                    "minimum": character_class.minimum,
+                    "name": character_class.name,
+                    "size": len(character_class.symbols),
+                }
+                for character_class in inspection.policy.classes
+            ],
+            "dp_cells_upper_bound": f"{inspection.dp_cells_upper_bound:,}",
+            "entropy_bits": (
+                f"{inspection.entropy_bits_floor}"
+                f"\u2013{inspection.entropy_bits_ceiling}"
+            ),
+            "excluded": f"{inspection.excluded:,}",
+            "fraction": (
+                f"{inspection.fraction_numerator}/{inspection.fraction_denominator}"
+            ),
+            "minimum_total": sum(inspection.policy.minima),
+            "policy_sha256": inspection.policy_sha256,
+            "unconstrained": f"{inspection.unconstrained:,}",
+            "valid": f"{inspection.valid:,}",
+            "valid_raw": str(inspection.valid),
+        }
     return render_template(
         "index.html",
         error=error,
+        form_error=form_error,
+        inspection=inspection_view,
         length=length,
         maximum_length=MAX_PASSWORD_LENGTH,
         minimum_length=MIN_PASSWORD_LENGTH,
@@ -135,7 +168,8 @@ def create_app(test_config: Mapping[str, object] | None = None) -> Flask:
 
     @app.get("/")
     def index() -> str:
-        return _render_page()
+        space = PasswordSpace(_default_policy(DEFAULT_PASSWORD_LENGTH))
+        return _render_page(inspection=inspect_space(space))
 
     @app.post("/")
     def generate_password() -> tuple[str, int] | str:
@@ -144,9 +178,15 @@ def create_app(test_config: Mapping[str, object] | None = None) -> Flask:
         except _UnsupportedFormMediaType:
             return _render_page(error=_MEDIA_TYPE_ERROR), 415
         except _FormValidationError:
-            return _render_page(error=_FORM_ERROR), 400
+            return _render_page(length="", error=_FORM_ERROR, form_error=True), 400
 
-        password = PasswordSpace(_default_policy(length)).sample_uniform()
-        return _render_page(length=length, password=password)
+        space = PasswordSpace(_default_policy(length))
+        inspection = inspect_space(space)
+        password = space.sample_uniform()
+        return _render_page(
+            inspection=inspection,
+            length=length,
+            password=password,
+        )
 
     return app

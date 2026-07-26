@@ -3,48 +3,241 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Password Policy State-Space Lab</title>
+  <meta name="color-scheme" content="dark">
+  <title>{% if password is not none %}Generated password · {% elif error is not none %}Request rejected · {% endif %}Password Policy State-Space Lab</title>
+  <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-  <main>
-    <h1>Password Policy State-Space Lab</h1>
-    <p>
-      Sample one password uniformly from the complete state space allowed by
-      the fixed lower, upper, digit, and punctuation policy.
-    </p>
+  <a class="skip-link" href="#main-content">Skip to the generator</a>
 
-    <form action="/" method="post">
-      <label for="length">
-        Password length ({{ minimum_length }}–{{ maximum_length }})
-      </label>
-      <input
-        id="length"
-        name="length"
-        type="number"
-        min="{{ minimum_length }}"
-        max="{{ maximum_length }}"
-        value="{{ length }}"
-        inputmode="numeric"
-        autocomplete="off"
-        required
-      >
-      <button type="submit">Generate uniformly</button>
-    </form>
+  <div class="page-shell">
+    <header class="hero" aria-labelledby="page-title">
+      <nav class="brand-bar" aria-label="Project identity">
+        <a class="brand" href="/" aria-label="Password Policy State-Space Lab home">
+          <span class="brand-mark" aria-hidden="true">P/Σ</span>
+          <span>State-Space Lab</span>
+        </a>
+        <span class="status-chip">
+          <span class="status-dot" aria-hidden="true"></span>
+          Local-only interface
+        </span>
+      </nav>
 
-    {% if error is not none %}
-    <p role="alert">{{ error }}</p>
-    {% endif %}
+      <div class="hero-copy">
+        <p class="eyebrow">Exact combinatorics · one CSPRNG rank</p>
+        <h1 id="page-title">Count the policy space before sampling from it.</h1>
+        <p class="hero-lede">
+          Every valid string has one stable rank. The application draws one
+          rank uniformly, resolves it through the tested bijection, and never
+          retries candidate passwords.
+        </p>
+      </div>
 
-    {% if password is not none %}
-    <section aria-labelledby="result-heading">
-      <h2 id="result-heading">Generated password</h2>
-      <output id="generated-password">{{ password }}</output>
-      <p>
-        This value is shown once in the response and is not stored by the
-        application.
-      </p>
-    </section>
-    {% endif %}
-  </main>
+      <ul class="trust-row" aria-label="Runtime guarantees">
+        <li><span aria-hidden="true">01</span> Exact integer counts</li>
+        <li><span aria-hidden="true">02</span> One entropy call</li>
+        <li><span aria-hidden="true">03</span> No session or storage</li>
+      </ul>
+    </header>
+
+    <main id="main-content" tabindex="-1">
+      <section class="workspace" aria-label="Password generation workspace">
+        <article class="panel generator-panel">
+          <header class="panel-heading">
+            <div>
+              <p class="section-index">01 / Uniform sampler</p>
+              <h2>Generate one ephemeral value</h2>
+            </div>
+            <span class="method-tag">POST /</span>
+          </header>
+
+          <form action="/" method="post">
+            <div class="field">
+              <div class="label-row">
+                <label for="length">Password length</label>
+                <span>{{ minimum_length }}–{{ maximum_length }} characters</span>
+              </div>
+              <input
+                id="length"
+                name="length"
+                type="number"
+                min="{{ minimum_length }}"
+                max="{{ maximum_length }}"
+                step="1"
+                value="{{ length }}"
+                inputmode="numeric"
+                autocomplete="off"
+                aria-describedby="length-help{% if form_error %} form-error{% endif %}"
+                {% if form_error %}aria-invalid="true"{% endif %}
+                required
+              >
+              <p id="length-help" class="field-help">
+                The fixed profile requires lowercase, uppercase, digit, and
+                punctuation coverage.
+              </p>
+            </div>
+
+            <button type="submit">
+              <span>Generate uniformly</span>
+              <span aria-hidden="true">→</span>
+            </button>
+          </form>
+
+          {% if error is not none %}
+          <div id="form-error" class="alert" role="alert">
+            <p class="alert-title">Request rejected before generation</p>
+            <p>{{ error }}</p>
+          </div>
+          {% endif %}
+
+          {% if password is not none %}
+          <section class="result-card" aria-labelledby="result-heading">
+            <div class="result-heading-row">
+              <div>
+                <p class="eyebrow">Ephemeral response</p>
+                <h3 id="result-heading">Generated password</h3>
+              </div>
+              <span class="result-badge">not stored</span>
+            </div>
+            <output
+              id="generated-password"
+              class="password-output"
+              for="length"
+              dir="ltr"
+              aria-labelledby="result-heading"
+            >{{ password }}</output>
+            <p class="result-note">
+              This response is non-cacheable. The application does not retain
+              or log the value. It remains visible in this tab; browser and
+              clipboard memory cannot be zeroized by this interface.
+            </p>
+          </section>
+          {% elif error is none %}
+          <div class="empty-state">
+            <span class="empty-glyph" aria-hidden="true">∑</span>
+            <div>
+              <p class="empty-title">Ready to sample one exact rank</p>
+              <p>The generated value appears here for this response only.</p>
+            </div>
+          </div>
+          {% endif %}
+        </article>
+
+        <aside class="panel policy-panel" aria-labelledby="policy-heading">
+          <header class="panel-heading">
+            <div>
+              <p class="section-index">02 / Policy audit</p>
+              <h2 id="policy-heading">What the sampler is counting</h2>
+            </div>
+            <span class="method-tag">visible-ascii-v1</span>
+          </header>
+
+          {% if inspection is not none %}
+          <ul class="class-list" aria-label="Required character classes">
+            {% for class in inspection.classes %}
+            <li>
+              <span class="class-name">{{ class.name }}</span>
+              <span>{{ class.size }} symbols · minimum {{ class.minimum }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+
+          <dl class="metric-grid">
+            <div class="metric metric-wide">
+              <dt>Uniform-draw entropy bounds</dt>
+              <dd>{{ inspection.entropy_bits }} bits</dd>
+            </div>
+            <div class="metric">
+              <dt>Alphabet size</dt>
+              <dd>{{ inspection.alphabet_size }} symbols</dd>
+            </div>
+            <div class="metric">
+              <dt>Required minima</dt>
+              <dd>{{ inspection.minimum_total }} positions</dd>
+            </div>
+            <div class="metric">
+              <dt>DP cell upper bound</dt>
+              <dd>{{ inspection.dp_cells_upper_bound }}</dd>
+            </div>
+            <div class="metric">
+              <dt>Character classes</dt>
+              <dd>{{ inspection.class_count }} classes</dd>
+            </div>
+          </dl>
+
+          <details class="exact-details">
+            <summary>Inspect exact cardinalities and fingerprint</summary>
+            <dl class="exact-counts">
+              <div>
+                <dt>Exact valid candidates</dt>
+                <dd>
+                  <data value="{{ inspection.valid_raw }}">{{ inspection.valid }}</data>
+                </dd>
+              </div>
+              <div>
+                <dt>Unconstrained candidates</dt>
+                <dd>{{ inspection.unconstrained }}</dd>
+              </div>
+              <div>
+                <dt>Excluded by policy</dt>
+                <dd>{{ inspection.excluded }}</dd>
+              </div>
+            </dl>
+            <div class="fraction-block">
+              <span>Exact policy-satisfying fraction</span>
+              <code>{{ inspection.fraction }}</code>
+            </div>
+            <div class="fingerprint">
+              <span>Ordered policy fingerprint</span>
+              <code>{{ inspection.policy_sha256 }}</code>
+            </div>
+          </details>
+          {% else %}
+          <div class="audit-withheld">
+            <span aria-hidden="true">!</span>
+            <p>
+              Audit metrics are shown only after a valid bounded policy is
+              constructed.
+            </p>
+          </div>
+          {% endif %}
+
+          <p class="metric-caveat">
+            Counts and entropy bounds describe the uniform state space. They
+            are not a password-strength score or an authentication guarantee.
+          </p>
+        </aside>
+      </section>
+
+      <section class="workflow" aria-labelledby="workflow-heading">
+        <div class="workflow-heading">
+          <p class="section-index">03 / Execution path</p>
+          <h2 id="workflow-heading">One auditable path, end to end</h2>
+        </div>
+        <ol class="workflow-steps">
+          <li>
+            <span>01</span>
+            <h3>Count</h3>
+            <p>Bottom-up DP computes the exact valid cardinality.</p>
+          </li>
+          <li>
+            <span>02</span>
+            <h3>Draw</h3>
+            <p><code>secrets.randbelow(total)</code> selects one uniform rank.</p>
+          </li>
+          <li>
+            <span>03</span>
+            <h3>Resolve</h3>
+            <p>Deterministic unranking maps that index to one valid string.</p>
+          </li>
+        </ol>
+      </section>
+    </main>
+
+    <footer>
+      <p>Password Policy State-Space Lab</p>
+      <p>Server-rendered · no JavaScript · no external assets</p>
+    </footer>
+  </div>
 </body>
 </html>

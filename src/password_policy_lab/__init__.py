@@ -11,6 +11,7 @@ from password_policy_lab.inspection import (
     REPORT_SCHEMA_VERSION,
     StateSpaceInspection,
     inspect_policy,
+    inspect_space,
     policy_sha256,
 )
 from password_policy_lab.policy import CharacterClass, PasswordPolicy
@@ -35,6 +36,7 @@ __all__ = [
     "StateSpaceInspection",
     "create_app",
     "inspect_policy",
+    "inspect_space",
     "policy_sha256",
     "visible_ascii_policy",
 ]

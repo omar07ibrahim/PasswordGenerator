@@ -27,7 +27,7 @@ dev = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-password_policy_lab = ["py.typed", "templates/*.html"]
+password_policy_lab = ["py.typed", "static/*.css", "templates/*.html"]
 
 [tool.ruff]
 target-version = "py311"

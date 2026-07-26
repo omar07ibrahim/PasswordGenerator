@@ -8,7 +8,9 @@ import pytest
 from password_policy_lab import (
     CharacterClass,
     PasswordPolicy,
+    PasswordSpace,
     inspect_policy,
+    inspect_space,
     policy_sha256,
     visible_ascii_policy,
 )
@@ -75,6 +77,20 @@ def test_inspection_reports_exact_counts_fraction_and_dp_bounds() -> None:
             "transitions_budget": MAX_DP_TRANSITIONS,
         },
     }
+
+
+def test_existing_space_can_be_inspected_without_reconstruction() -> None:
+    space = PasswordSpace(PasswordPolicy(2, (CharacterClass("letters", "ab"),)))
+
+    report = inspect_space(space)
+
+    assert report.policy is space.policy
+    assert report.valid == space.total == 4
+
+
+def test_inspect_space_requires_an_exact_password_space() -> None:
+    with pytest.raises(TypeError, match="PasswordSpace"):
+        inspect_space("not-a-space")  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize(

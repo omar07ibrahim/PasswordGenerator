@@ -16,6 +16,8 @@ from password_policy_lab import (
     PasswordPolicy,
     PasswordSpace,
     create_app,
+    inspect_policy,
+    visible_ascii_policy,
 )
 from password_policy_lab.web import (
     MAX_FORM_BYTES,
@@ -56,6 +58,7 @@ def test_index_is_plain_self_contained_and_stateless(client: FlaskClient) -> Non
 
     assert response.status_code == 200
     assert "Password Policy State-Space Lab" in document
+    assert "<title>Password Policy State-Space Lab</title>" in document
     assert 'value="20"' in document
     assert "Generated password" not in document
     assert "Set-Cookie" not in response.headers
@@ -63,8 +66,48 @@ def test_index_is_plain_self_contained_and_stateless(client: FlaskClient) -> Non
     assert "https://" not in document
     assert "<script" not in document
     assert "<style" not in document
-    assert "<link" not in document
+    assert '<link rel="stylesheet" href="/static/styles.css">' in document
     assert "<img" not in document
+    assert 'href="#main-content"' in document
+    assert 'id="main-content" tabindex="-1"' in document
+    assert 'step="1"' in document
+    assert 'aria-describedby="length-help"' in document
+    assert 'aria-invalid="true"' not in document
+    assert "Exact valid candidates" in document
+    assert "Uniform-draw entropy bounds" in document
+    assert "not a password-strength score" in document
+    assert '<details class="exact-details">' in document
+
+
+def test_index_metrics_match_the_exact_default_policy(client: FlaskClient) -> None:
+    report = inspect_policy(visible_ascii_policy(20))
+
+    document = client.get("/").get_data(as_text=True)
+
+    assert f'value="{report.valid}"' in document
+    assert f"{report.valid:,}" in document
+    assert f"{report.unconstrained:,}" in document
+    assert f"{report.excluded:,}" in document
+    assert (
+        f"{report.entropy_bits_floor}\u2013{report.entropy_bits_ceiling} bits"
+        in document
+    )
+    assert report.policy_sha256 in document
+
+
+def test_packaged_stylesheet_is_local_and_secured(client: FlaskClient) -> None:
+    response = client.get("/static/styles.css")
+    stylesheet = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert response.mimetype == "text/css"
+    assert ":focus-visible" in stylesheet
+    assert "prefers-reduced-motion" in stylesheet
+    assert "forced-colors" in stylesheet
+    assert "http://" not in stylesheet
+    assert "https://" not in stylesheet
+    assert response.headers["Cache-Control"] == "no-store, max-age=0"
+    assert "style-src 'self'" in response.headers["Content-Security-Policy"]
 
 
 def test_valid_form_uses_the_fixed_policy_and_uniform_sampler(
@@ -83,8 +126,17 @@ def test_valid_form_uses_the_fixed_policy_and_uniform_sampler(
     document = response.get_data(as_text=True)
 
     assert response.status_code == 200
+    assert "<title>Generated password · Password Policy State-Space Lab</title>" in (
+        document
+    )
     assert "aA1!aaaa" in document
     assert 'value="8"' in document
+    report = inspect_policy(visible_ascii_policy(8))
+    assert f'value="{report.valid}"' in document
+    assert f"{report.valid:,}" in document
+    assert f"{report.unconstrained:,}" in document
+    assert f"{report.excluded:,}" in document
+    assert report.policy_sha256 in document
     assert len(sampled_spaces) == 1
     policy = sampled_spaces[0].policy
     assert policy.length == 8
@@ -126,8 +178,9 @@ def test_maximum_length_fixed_rank_satisfies_the_fixed_policy(
 
     response = client.post("/", data={"length": str(MAX_PASSWORD_LENGTH)})
     match = re.search(
-        r'<output id="generated-password">([^<]*)</output>',
+        r'<output[^>]*id="generated-password"[^>]*>([^<]*)</output>',
         response.get_data(as_text=True),
+        flags=re.DOTALL,
     )
 
     assert response.status_code == 200
@@ -173,9 +226,15 @@ def test_invalid_form_values_are_rejected_without_generation(
     response = client.post("/", data=data)
 
     assert response.status_code == 400
-    assert "Submit exactly one whole-number length from 8 through 128." in (
-        response.get_data(as_text=True)
+    document = response.get_data(as_text=True)
+    assert "<title>Request rejected · Password Policy State-Space Lab</title>" in (
+        document
     )
+    assert "Submit exactly one whole-number length from 8 through 128." in document
+    assert 'value=""' in document
+    assert 'aria-invalid="true"' in document
+    assert 'aria-describedby="length-help form-error"' in document
+    assert "Audit metrics are shown only after a valid bounded policy" in document
 
 
 def test_non_urlencoded_form_is_rejected(
@@ -195,9 +254,9 @@ def test_non_urlencoded_form_is_rejected(
     )
 
     assert response.status_code == 415
-    assert "Submit the form as application/x-www-form-urlencoded." in (
-        response.get_data(as_text=True)
-    )
+    document = response.get_data(as_text=True)
+    assert "Submit the form as application/x-www-form-urlencoded." in document
+    assert 'aria-invalid="true"' not in document
 
 
 def test_oversized_body_is_rejected_before_generation(
@@ -220,7 +279,9 @@ def test_oversized_body_is_rejected_before_generation(
     )
 
     assert response.status_code == 413
-    assert "The submitted form is too large." in response.get_data(as_text=True)
+    document = response.get_data(as_text=True)
+    assert "The submitted form is too large." in document
+    assert 'aria-invalid="true"' not in document
 
 
 @pytest.mark.parametrize(
@@ -237,8 +298,10 @@ def test_untrusted_host_is_rejected_without_echoing_it(client: FlaskClient) -> N
     response = client.get("/", headers={"Host": host})
 
     assert response.status_code == 400
-    assert host not in response.get_data(as_text=True)
-    assert "The request could not be accepted." in response.get_data(as_text=True)
+    document = response.get_data(as_text=True)
+    assert host not in document
+    assert "The request could not be accepted." in document
+    assert 'aria-invalid="true"' not in document
 
 
 def test_generated_password_is_escaped_and_never_logged(
@@ -265,6 +328,9 @@ def test_generated_password_is_escaped_and_never_logged(
     assert response.status_code == 200
     assert generated not in document
     assert "&lt;script&gt;" in document
+    assert 'for="length"' in document
+    assert 'dir="ltr"' in document
+    assert "aria-live" not in document
     assert generated not in header_text
     assert generated not in following_document
     assert all(generated not in record.getMessage() for record in caplog.records)
@@ -286,6 +352,7 @@ def test_generated_password_is_escaped_and_never_logged(
         lambda client: client.get("/", headers={"Host": "untrusted.example"}),
         lambda client: client.get("/missing"),
         lambda client: client.put("/"),
+        lambda client: client.get("/static/styles.css"),
     ],
 )
 def test_security_headers_cover_success_and_error_responses(
@@ -302,7 +369,7 @@ def test_security_headers_cover_success_and_error_responses(
         "frame-ancestors 'none'; connect-src 'none'; font-src 'none'; "
         "frame-src 'none'; img-src 'none'; manifest-src 'none'; "
         "media-src 'none'; object-src 'none'; script-src 'none'; "
-        "style-src 'none'; worker-src 'none'"
+        "style-src 'self'; worker-src 'none'"
     )
     assert response.headers["Cross-Origin-Embedder-Policy"] == "require-corp"
     assert response.headers["Cross-Origin-Opener-Policy"] == "same-origin"

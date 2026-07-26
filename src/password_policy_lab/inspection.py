@@ -123,7 +123,16 @@ def inspect_policy(policy: PasswordPolicy) -> StateSpaceInspection:
     if type(policy) is not PasswordPolicy:
         raise TypeError("policy must be a PasswordPolicy")
 
-    space = PasswordSpace(policy)
+    return inspect_space(PasswordSpace(policy))
+
+
+def inspect_space(space: PasswordSpace) -> StateSpaceInspection:
+    """Inspect one already-built space without repeating its DP construction."""
+
+    if type(space) is not PasswordSpace:
+        raise TypeError("space must be a PasswordSpace")
+
+    policy = space.policy
     alphabet_size = len(policy.alphabet)
     unconstrained = alphabet_size**policy.length
     valid = space.total

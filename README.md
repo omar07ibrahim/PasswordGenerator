@@ -88,6 +88,13 @@ application response as non-cacheable. Run it as an unprivileged user and do
 not change the bind address unless you also add transport security and an
 appropriate deployment boundary.
 
+The interface is responsive, keyboard-visible, and entirely server-rendered:
+one package-local stylesheet, no JavaScript, no CDN, and no web font. Alongside
+the form it shows the exact valid, unconstrained, and excluded counts, uniform
+entropy bounds, DP budget, class minima, and full ordered-policy fingerprint.
+Invalid requests are rejected before policy construction, so their page
+deliberately withholds request-specific audit metrics.
+
 The request-body bound is enforced by both Waitress and Flask. The current form
 has no account, cookie, session, persistent state, or server-side mutation, so
 it has no CSRF token. Adding any of those features requires revisiting that
