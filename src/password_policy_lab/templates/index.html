@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Password Policy State-Space Lab</title>
+</head>
+<body>
+  <main>
+    <h1>Password Policy State-Space Lab</h1>
+    <p>
+      Sample one password uniformly from the complete state space allowed by
+      the fixed lower, upper, digit, and punctuation policy.
+    </p>
+
+    <form action="/" method="post">
+      <label for="length">
+        Password length ({{ minimum_length }}–{{ maximum_length }})
+      </label>
+      <input
+        id="length"
+        name="length"
+        type="number"
+        min="{{ minimum_length }}"
+        max="{{ maximum_length }}"
+        value="{{ length }}"
+        inputmode="numeric"
+        autocomplete="off"
+        required
+      >
+      <button type="submit">Generate uniformly</button>
+    </form>
+
+    {% if error is not none %}
+    <p role="alert">{{ error }}</p>
+    {% endif %}
+
+    {% if password is not none %}
+    <section aria-labelledby="result-heading">
+      <h2 id="result-heading">Generated password</h2>
+      <output id="generated-password">{{ password }}</output>
+      <p>
+        This value is shown once in the response and is not stored by the
+        application.
+      </p>
+    </section>
+    {% endif %}
+  </main>
+</body>
+</html>

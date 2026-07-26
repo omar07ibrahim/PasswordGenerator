@@ -8,6 +8,7 @@ from password_policy_lab.errors import (
 )
 from password_policy_lab.policy import CharacterClass, PasswordPolicy
 from password_policy_lab.space import PasswordSpace
+from password_policy_lab.web import create_app
 
 __all__ = [
     "CharacterClass",
@@ -17,4 +18,5 @@ __all__ = [
     "PolicyComplexityError",
     "PolicyValidationError",
     "RankOutOfRangeError",
+    "create_app",
 ]
