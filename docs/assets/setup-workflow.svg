@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="650" viewBox="0 0 1600 650" role="img" aria-labelledby="title description">
+  <title id="title">Reproducible setup and evidence workflow</title>
+  <desc id="description">Six steps cover environment setup, quality gates, state-space inspection, local serving, and guarded evidence capture.</desc>
+  <defs>
+    <marker id="arrow-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#63e6d2"/>
+    </marker>
+    <marker id="arrow-gold" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#f4c95d"/>
+    </marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity=".28"/>
+    </filter>
+    <style>
+      .title { fill: #edf5f1; font: 700 42px system-ui, sans-serif; letter-spacing: -1px; }
+      .subtitle { fill: #9fb4ad; font: 400 20px system-ui, sans-serif; }
+      .lane { fill: #63e6d2; font: 700 15px ui-monospace, monospace; letter-spacing: 2px; }
+      .node-title { fill: #edf5f1; font: 700 22px system-ui, sans-serif; }
+      .node-detail { fill: #9fb4ad; font: 400 16px system-ui, sans-serif; }
+      .node-code { fill: #f4c95d; font: 600 15px ui-monospace, monospace; }
+      .step { fill: #0a1014; font: 800 15px ui-monospace, monospace; }
+      .caption { fill: #9fb4ad; font: 400 16px system-ui, sans-serif; }
+    </style>
+  </defs>
+  <rect width="1600" height="650" rx="28" fill="#0a1014"/>
+  <path d="M0 0 H1600 V650 H0 Z" fill="none" stroke="#36505a" stroke-width="2"/>
+  <text x="70" y="82" class="title">From a clean checkout to verified evidence</text>
+  <text x="70" y="120" class="subtitle">Local commands are repeatable with the recorded runtime and tool versions.</text>
+  <text x="70" y="175" class="lane">SETUP + VERIFY</text>
+  <text x="70" y="445" class="lane" fill="#f4c95d">INDEPENDENT NEXT WORKFLOWS</text>
+  <g filter="url(#shadow)">
+    <rect x="70" y="205" width="430" height="150" rx="18" fill="#111c21" stroke="#36505a" stroke-width="2"/>
+    <rect x="70" y="205" width="8" height="150" rx="4" fill="#63e6d2"/>
+    <circle cx="104" cy="239" r="17" fill="#63e6d2"/>
+    <text x="104" y="244" text-anchor="middle" class="step">01</text>
+    <text x="132" y="246" class="node-title">Create venv</text>
+    <text x="96" y="281" class="node-detail">
+      <tspan x="96" dy="0">python -m venv .venv</tspan>
+      <tspan x="96" dy="24">activate locally</tspan>
+    </text>
+  </g>  <g filter="url(#shadow)">
+    <rect x="575" y="205" width="430" height="150" rx="18" fill="#111c21" stroke="#36505a" stroke-width="2"/>
+    <rect x="575" y="205" width="8" height="150" rx="4" fill="#63e6d2"/>
+    <circle cx="609" cy="239" r="17" fill="#63e6d2"/>
+    <text x="609" y="244" text-anchor="middle" class="step">02</text>
+    <text x="637" y="246" class="node-title">Install project</text>
+    <text x="601" y="281" class="node-detail">
+      <tspan x="601" dy="0">pip install -e '.[dev]'</tspan>
+      <tspan x="601" dy="24">pinned top-level dev tools</tspan>
+    </text>
+  </g>  <g filter="url(#shadow)">
+    <rect x="1080" y="205" width="430" height="150" rx="18" fill="#111c21" stroke="#36505a" stroke-width="2"/>
+    <rect x="1080" y="205" width="8" height="150" rx="4" fill="#63e6d2"/>
+    <circle cx="1114" cy="239" r="17" fill="#63e6d2"/>
+    <text x="1114" y="244" text-anchor="middle" class="step">03</text>
+    <text x="1142" y="246" class="node-title">Run gates</text>
+    <text x="1106" y="281" class="node-detail">
+      <tspan x="1106" dy="0">make check</tspan>
+      <tspan x="1106" dy="24">lint · types · tests</tspan>
+    </text>
+  </g>  <g filter="url(#shadow)">
+    <rect x="70" y="475" width="430" height="150" rx="18" fill="#111c21" stroke="#36505a" stroke-width="2"/>
+    <rect x="70" y="475" width="8" height="150" rx="4" fill="#f4c95d"/>
+    <circle cx="104" cy="509" r="17" fill="#f4c95d"/>
+    <text x="104" y="514" text-anchor="middle" class="step">A</text>
+    <text x="132" y="516" class="node-title">Inspect space</text>
+    <text x="96" y="551" class="node-detail">
+      <tspan x="96" dy="0">password-policy-lab</tspan>
+      <tspan x="96" dy="24">inspect --length 20</tspan>
+    </text>
+  </g>  <g filter="url(#shadow)">
+    <rect x="575" y="475" width="430" height="150" rx="18" fill="#111c21" stroke="#36505a" stroke-width="2"/>
+    <rect x="575" y="475" width="8" height="150" rx="4" fill="#f4c95d"/>
+    <circle cx="609" cy="509" r="17" fill="#f4c95d"/>
+    <text x="609" y="514" text-anchor="middle" class="step">B</text>
+    <text x="637" y="516" class="node-title">Serve locally</text>
+    <text x="601" y="551" class="node-detail">
+      <tspan x="601" dy="0">waitress-serve</tspan>
+      <tspan x="601" dy="24">127.0.0.1 only</tspan>
+    </text>
+  </g>  <g filter="url(#shadow)">
+    <rect x="1080" y="475" width="430" height="150" rx="18" fill="#111c21" stroke="#36505a" stroke-width="2"/>
+    <rect x="1080" y="475" width="8" height="150" rx="4" fill="#f4c95d"/>
+    <circle cx="1114" cy="509" r="17" fill="#f4c95d"/>
+    <text x="1114" y="514" text-anchor="middle" class="step">C</text>
+    <text x="1142" y="516" class="node-title">Rebuild evidence</text>
+    <text x="1106" y="551" class="node-detail">
+      <tspan x="1106" dy="0">make evidence</tspan>
+      <tspan x="1106" dy="24">Playwright-linked Chromium</tspan>
+    </text>
+  </g>
+  <g><path d="M500 280 H575" fill="none" stroke="#63e6d2" stroke-width="4" marker-end="url(#arrow-teal)"/><path d="M1005 280 H1080" fill="none" stroke="#63e6d2" stroke-width="4" marker-end="url(#arrow-teal)"/><path d="M1295 355 V410 H285 V475" fill="none" stroke="#f4c95d" stroke-width="4" marker-end="url(#arrow-gold)"/><path d="M1295 355 V410 H790 V475" fill="none" stroke="#f4c95d" stroke-width="4" marker-end="url(#arrow-gold)"/><path d="M1295 355 V410 H1295 V475" fill="none" stroke="#f4c95d" stroke-width="4" marker-end="url(#arrow-gold)"/></g>
+</svg>

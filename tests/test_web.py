@@ -75,6 +75,8 @@ def test_index_is_plain_self_contained_and_stateless(client: FlaskClient) -> Non
     assert 'aria-invalid="true"' not in document
     assert "Exact valid candidates" in document
     assert "Uniform-draw entropy bounds" in document
+    assert "One rank-selection call" in document
+    assert "One entropy call" not in document
     assert "not a password-strength score" in document
     assert '<details class="exact-details">' in document
 

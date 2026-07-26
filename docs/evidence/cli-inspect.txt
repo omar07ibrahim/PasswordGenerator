@@ -1,0 +1,23 @@
+report_schema_version: 1
+rank_order_version: class-symbol-lexicographic-v1
+policy_sha256: sha256:734de6db732f235efeeb9c753e7449343fdb2cca7475a6bbf200806d498cb950
+profile: visible-ascii-v1
+length: 20
+alphabet_size: 94
+minimum_total: 4
+class.lower: size=26 minimum=1
+class.upper: size=26 minimum=1
+class.digits: size=10 minimum=1
+class.punctuation: size=32 minimum=1
+valid: 2585908648140078948280078326668093030400
+unconstrained: 2901062411314618233730627546741369470976
+excluded: 315153763174539285450549220073276440576
+satisfying_fraction: 2466114662303999851493910147350400/2766668711962335809450748011342401
+rank_minimum: 0
+rank_maximum: 2585908648140078948280078326668093030399
+uniform_candidate_probability: 1/2585908648140078948280078326668093030400
+entropy_bits_floor: 130
+entropy_bits_ceiling: 131
+deficit_vectors_upper_bound_per_layer: 16
+dp_cells_upper_bound: 336
+dp_transitions_upper_bound: 1344
