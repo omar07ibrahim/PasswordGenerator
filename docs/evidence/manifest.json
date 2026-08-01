@@ -53,11 +53,11 @@
         "rendered from normalized real gate transcript",
         "all commands exited zero"
       ],
-      "bytes": 146672,
+      "bytes": 146227,
       "height": 1276,
       "media_type": "image/png",
       "path": "docs/assets/quality-gate.png",
-      "sha256": "9c9e04e71175d5d90aaa8ffd242a02611b9f44a20dea3884f0756656a9080985",
+      "sha256": "0b96bcbaca72adc18d1809d260d5fdd5b2d6c83dc58d34935dd2f489fe2e873d",
       "width": 1600
     },
     {
@@ -185,7 +185,7 @@
       "bytes": 1874,
       "media_type": "text/plain",
       "path": "docs/evidence/quality-gate.txt",
-      "sha256": "aec144f46e7385f6dc217ad9b6ac4ac877bb688cf0fcce7c557b74a3847b98b3"
+      "sha256": "b5b4d6c218c2130c499f6a4f1311952a208569741eb67a61337f3131698fe967"
     },
     {
       "assertions": [
@@ -352,7 +352,7 @@
     },
     {
       "path": "Makefile",
-      "sha256": "70f4fe061b50a4548ddd13f47247c2110fff7eccec33252d47dfde69468be2ea"
+      "sha256": "d6d1c0b532cc82a7a211013aba0821cdd90e9ab2d4b71342af54823a68227e20"
     },
     {
       "path": "PACKAGE.md",
@@ -389,6 +389,10 @@
     {
       "path": "scripts/generate_evidence.py",
       "sha256": "96e00dd2f4e48c6ffb20d7543ef02b687d3f94df2d259bc064d2b6f48ef3c534"
+    },
+    {
+      "path": "scripts/profile_complexity.py",
+      "sha256": "fcc4c3d050d2cf8f9ef11acf87f0853e80aede3bce9cb0d405596d0a65e70f3e"
     },
     {
       "path": "src/password_policy_lab/__init__.py",
@@ -445,6 +449,10 @@
     {
       "path": "tests/test_cli.py",
       "sha256": "12e93f725e570849c588ec631968bf768dbde27121067a88617aef8cbc07ea54"
+    },
+    {
+      "path": "tests/test_complexity_profile.py",
+      "sha256": "e6b127df936de0c47b6cf697e44d18d6618fb331201b2c02697fc69cacd8f167"
     },
     {
       "path": "tests/test_counting.py",

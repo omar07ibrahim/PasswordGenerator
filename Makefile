@@ -16,7 +16,7 @@ EVIDENCE_ENV = \
 	TEMP="$(EVIDENCE_WORK)/tmp"
 
 .PHONY: \
-	build check dependencies distribution-check evidence evidence-browser \
+	build check complexity-profile dependencies distribution-check evidence evidence-browser \
 	evidence-check lint test typecheck
 
 lint:
@@ -38,6 +38,9 @@ build:
 
 dependencies:
 	@$(PYTHON) -m pip check
+
+complexity-profile:
+	@PYTHONPATH=src $(PYTHON) scripts/profile_complexity.py --format text
 
 distribution-check:
 	@PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/attest_distribution.py \

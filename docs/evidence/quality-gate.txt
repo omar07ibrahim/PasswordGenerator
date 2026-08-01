@@ -2,15 +2,15 @@ $ python -m ruff check app.py scripts src tests
 All checks passed!
 
 $ python -m ruff format --check app.py scripts src tests
-26 files already formatted
+28 files already formatted
 
 $ MYPYPATH=src python -m mypy --strict app.py scripts src tests
-Success: no issues found in 26 source files
+Success: no issues found in 28 source files
 
 $ PYTHONPATH=src python -m pytest --cov=password_policy_lab --cov-branch --cov-report=term-missing -q
-................................................................................................................ [ 42%]
-................................................................................................................ [ 84%]
-........................................                                                                         [100%]
+................................................................................................................ [ 41%]
+................................................................................................................ [ 82%]
+................................................                                                                 [100%]
 ==================================================== tests coverage ====================================================
 ___________________________________ coverage: platform linux, python 3.12.3-final-0 ____________________________________
 
@@ -20,7 +20,7 @@ TOTAL     526      0    130      0   100%
 
 9 files skipped due to complete coverage.
 Required test coverage of 100.0% reached. Total coverage: 100.00%
-264 passed
+272 passed
 
 $ python scripts/attest_distribution.py
 distribution attestation: PASS (unofficial)
