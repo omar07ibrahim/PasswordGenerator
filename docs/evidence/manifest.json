@@ -26,14 +26,38 @@
     },
     {
       "assertions": [
+        "rendered from the real distribution attestation transcript",
+        "canonical wheel, sdist rebuild, and installed smoke passed"
+      ],
+      "bytes": 64519,
+      "height": 466,
+      "media_type": "image/png",
+      "path": "docs/assets/distribution-check.png",
+      "sha256": "df09560f9baa4b2da030597859d174d5f297a4b79afe1032392434c72e9a0ebb",
+      "width": 1600
+    },
+    {
+      "assertions": [
+        "rendered from measured distribution hashes and member counts",
+        "claim boundaries remain explicit"
+      ],
+      "bytes": 6991,
+      "height": 830,
+      "media_type": "image/svg+xml",
+      "path": "docs/assets/distribution-contract.svg",
+      "sha256": "37eeac7f88fd0d3dd844c1984a8d69cdaf707f7ae5f3229889cb6dafe0d6656d",
+      "width": 1960
+    },
+    {
+      "assertions": [
         "rendered from normalized real gate transcript",
         "all commands exited zero"
       ],
-      "bytes": 91467,
-      "height": 976,
+      "bytes": 146672,
+      "height": 1276,
       "media_type": "image/png",
       "path": "docs/assets/quality-gate.png",
-      "sha256": "66e179b7c8b06cf579ec5e29a168ec1c1422c9cc8724523666506003d12f68a5",
+      "sha256": "9c9e04e71175d5d90aaa8ffd242a02611b9f44a20dea3884f0756656a9080985",
       "width": 1600
     },
     {
@@ -41,11 +65,11 @@
         "commands verified against package metadata",
         "repository-local evidence workflow"
       ],
-      "bytes": 6122,
+      "bytes": 6185,
       "height": 650,
       "media_type": "image/svg+xml",
       "path": "docs/assets/setup-workflow.svg",
-      "sha256": "88693e52fb683a5263c70342245d779f9be31f8ab7aa504878c35bb91c6cbb82",
+      "sha256": "ac10bb0b52f6351e3165bd8a54ff3922e311fe3cda853d86f57d03643ae90301",
       "width": 1600
     },
     {
@@ -89,11 +113,11 @@
         "real Waitress GET response",
         "exact policy details expanded"
       ],
-      "bytes": 470160,
-      "height": 2419,
+      "bytes": 474461,
+      "height": 2417,
       "media_type": "image/png",
       "path": "docs/assets/web-home.png",
-      "sha256": "fffa52b478ba62665c346bda982a8576ee67364e3b882e1e29ebe4a05a445019",
+      "sha256": "3043a36c8fe548a2ff9da4bb3a814988b263f021e8f97c00485ff7aba939843d",
       "width": 1440
     },
     {
@@ -135,13 +159,33 @@
     },
     {
       "assertions": [
+        "canonical path-free report from two real builds",
+        "exact archive inventories and honest claim boundaries"
+      ],
+      "bytes": 16006,
+      "media_type": "application/json",
+      "path": "docs/evidence/distribution-attestation.json",
+      "sha256": "611ed7883b93a62d8c977342271519be13614263aa343b495f340e126b2e5b18"
+    },
+    {
+      "assertions": [
+        "real normalized attestation output",
+        "no password sampled"
+      ],
+      "bytes": 587,
+      "media_type": "text/plain",
+      "path": "docs/evidence/distribution-check.txt",
+      "sha256": "94b61d45db43b334efe8f574c94d69931bdb35aa709bec1205e112913285a92e"
+    },
+    {
+      "assertions": [
         "real normalized command output",
         "timing and absolute path absent"
       ],
-      "bytes": 1166,
+      "bytes": 1874,
       "media_type": "text/plain",
       "path": "docs/evidence/quality-gate.txt",
-      "sha256": "18eaf060d51fbaeb8cedec36c18bf2196290d36b66bef1ad2926603cd255e5d7"
+      "sha256": "aec144f46e7385f6dc217ad9b6ac4ac877bb688cf0fcce7c557b74a3847b98b3"
     },
     {
       "assertions": [
@@ -168,6 +212,9 @@
     }
   ],
   "capture": {
+    "chromium_launch_args": [
+      "--num-raster-threads=1"
+    ],
     "requests": [
       {
         "artifact": "docs/assets/web-home.png",
@@ -265,6 +312,7 @@
         "python -m ruff format --check app.py scripts src tests",
         "MYPYPATH=src python -m mypy --strict app.py scripts src tests",
         "PYTHONPATH=src python -m pytest --cov=password_policy_lab --cov-branch --cov-report=term-missing -q",
+        "python scripts/attest_distribution.py",
         "python -m pip check"
       ]
     },
@@ -299,12 +347,20 @@
   "schema_version": 1,
   "source_files": [
     {
+      "path": "MANIFEST.in",
+      "sha256": "90a343738ccd474b81735cc3fd3e3a1cec947e47bc2c8cb5c8a9ff30c9eca679"
+    },
+    {
       "path": "Makefile",
-      "sha256": "dcafae5783472f29ecea4f3029db4f647ef7793a2b4f58a3d0eb9766f937ddd6"
+      "sha256": "70f4fe061b50a4548ddd13f47247c2110fff7eccec33252d47dfde69468be2ea"
+    },
+    {
+      "path": "PACKAGE.md",
+      "sha256": "0c58f616bdd464d40315197b7f5679cbd63f709a31925c3b887f12c5e1ae4dad"
     },
     {
       "path": "README.md",
-      "sha256": "29de5e6ee9f4f4f869202381d1c62f84dbe706d50503ea05ac65dfe962b13bdc"
+      "sha256": "405ede3a7f253df40b64180f804e4a228872132aaaf6ad5c282fcb65f4a2c42b"
     },
     {
       "path": "app.py",
@@ -312,19 +368,27 @@
     },
     {
       "path": "pyproject.toml",
-      "sha256": "f528181eae25e424dd82fc5dbf7c9065c886ef1ab979c97ecf716d9c8e9ca052"
+      "sha256": "1ca9cca3822404be961fae73a1cbecf5e9a7b2c112878d808b79b7c97466e7c9"
+    },
+    {
+      "path": "scripts/attest_distribution.py",
+      "sha256": "ffac30dec76abdded0320d6106942ab0096a30caa05ae05a201f23d814962e5a"
     },
     {
       "path": "scripts/check_evidence.py",
-      "sha256": "96770a1376ee5e2494abbb0b86ecc028392fd771548f12da302c7385474a648f"
+      "sha256": "eb72f02fd3fc50536aee670f0b83badffd1d9b13df5fa16d87c38a78be8cf881"
+    },
+    {
+      "path": "scripts/distribution_contract.py",
+      "sha256": "68c68447528202bc83303ce593b6d2a1c46090aadccfd16a5b1f8e469d3b6a97"
     },
     {
       "path": "scripts/evidence_rendering.py",
-      "sha256": "2ee59d600f2880682d9a7763172a16e4f48bd3327cebd2c615c89b4b17644a43"
+      "sha256": "b313270e49c26a9eb8b966805df21b5c46ed30823794cb5272014efb9f100a92"
     },
     {
       "path": "scripts/generate_evidence.py",
-      "sha256": "4574b4a3dc00ce142e677134368962340c3a981f9549736d3892a3d74609915c"
+      "sha256": "96e00dd2f4e48c6ffb20d7543ef02b687d3f94df2d259bc064d2b6f48ef3c534"
     },
     {
       "path": "src/password_policy_lab/__init__.py",
@@ -387,8 +451,16 @@
       "sha256": "5f72e9acf6c22d35317549fd13eaf87a6a864d5ad88c1441bfa50850eefa6718"
     },
     {
+      "path": "tests/test_distribution_attestation.py",
+      "sha256": "222d913d2ccc1afb65992acc29c8b0586699d0234fa483f1cd877ef4911e5c77"
+    },
+    {
+      "path": "tests/test_distribution_contract.py",
+      "sha256": "d6f8761a03c6f48962aaef97e4a9955ffc8967488deb9ec11f76bc5263773854"
+    },
+    {
       "path": "tests/test_evidence.py",
-      "sha256": "db99a5c7678e0d2ec2e2bf8c9c3cab539987e1fdc36161b77f44440a35104049"
+      "sha256": "8bc201dce3424e6456090e803fa0da4e83f625cb0ce2fc186f33ed255f12121c"
     },
     {
       "path": "tests/test_inspection.py",

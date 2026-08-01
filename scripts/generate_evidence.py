@@ -16,7 +16,7 @@ import sys
 import threading
 import tomllib
 import xml.etree.ElementTree as ElementTree
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from io import StringIO
@@ -25,6 +25,7 @@ from typing import Any, Protocol, cast
 from unittest.mock import patch
 from urllib.parse import urlsplit
 
+import attest_distribution as distribution_attester
 from evidence_rendering import (
     GOLD,
     LINE,
@@ -35,6 +36,7 @@ from evidence_rendering import (
     recompress_png,
     render_terminal_png,
     write_architecture_svg,
+    write_distribution_svg,
     write_gif,
     write_sampling_svg,
     write_setup_svg,
@@ -70,12 +72,16 @@ QUALITY_COMMANDS = (
         "PYTHONPATH=src python -m pytest --cov=password_policy_lab "
         "--cov-branch --cov-report=term-missing -q"
     ),
+    "python scripts/attest_distribution.py",
     "python -m pip check",
 )
+CHROMIUM_ARGS = ("--num-raster-threads=1",)
 
 OUTPUT_PATHS = (
     "docs/assets/architecture.svg",
     "docs/assets/cli-inspect.png",
+    "docs/assets/distribution-check.png",
+    "docs/assets/distribution-contract.svg",
     "docs/assets/quality-gate.png",
     "docs/assets/setup-workflow.svg",
     "docs/assets/state-space-sweep.png",
@@ -85,6 +91,8 @@ OUTPUT_PATHS = (
     "docs/assets/web-invalid-length.png",
     "docs/assets/web-validation-demo.gif",
     "docs/evidence/cli-inspect.txt",
+    "docs/evidence/distribution-attestation.json",
+    "docs/evidence/distribution-check.txt",
     "docs/evidence/quality-gate.txt",
     "docs/evidence/state-space-sweep.csv",
     "docs/evidence/web-validation-reference.png",
@@ -556,7 +564,9 @@ def _verify_setup_contract() -> None:
         raise RuntimeError("evidence dependencies are not pinned in the dev extra")
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
     required_make_contract = (
-        "check: lint typecheck test dependencies evidence-check",
+        "check: lint typecheck test dependencies distribution-check evidence-check",
+        "distribution-check:",
+        "scripts/attest_distribution.py",
         "evidence:",
         "scripts/generate_evidence.py",
         "evidence-check:",
@@ -671,6 +681,24 @@ def _goto(page: Page, url: str, expected_status: int) -> None:
     _assert_no_output(page)
 
 
+def _settle_rendering(page: Page) -> None:
+    page.evaluate(
+        """async () => {
+          await document.fonts.ready;
+          for (const animation of document.getAnimations()) {
+            try {
+              animation.finish();
+            } catch {
+              animation.cancel();
+            }
+          }
+          await new Promise((resolve) => {
+            requestAnimationFrame(() => requestAnimationFrame(resolve));
+          });
+        }"""
+    )
+
+
 def _capture_full_document(
     page: Page,
     *,
@@ -678,16 +706,17 @@ def _capture_full_document(
     width: int,
     viewport_height: int,
 ) -> None:
+    if page.viewport_size != {"width": width, "height": viewport_height}:
+        raise RuntimeError("full-document capture started from an invalid viewport")
+    _settle_rendering(page)
     scroll_height = cast(
         int,
         page.evaluate("() => Math.ceil(document.documentElement.scrollHeight)"),
     )
     if not 1 <= scroll_height <= 16_000:
         raise RuntimeError("document height is outside the screenshot safety bound")
-    page.set_viewport_size({"width": width, "height": scroll_height})
     page.evaluate("() => window.scrollTo(0, 0)")
-    page.screenshot(path=path, animations="disabled")
-    page.set_viewport_size({"width": width, "height": viewport_height})
+    page.screenshot(path=path, animations="disabled", full_page=True)
     recompress_png(path)
 
 
@@ -696,7 +725,10 @@ def _capture_web_evidence() -> _CaptureResult:
     external_requests: list[str] = []
     with _guarded_server() as server:
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(headless=True)
+            browser = playwright.chromium.launch(
+                headless=True,
+                args=list(CHROMIUM_ARGS),
+            )
             chromium_version = browser.version
 
             desktop = _new_context(browser, width=1440, height=960)
@@ -746,6 +778,7 @@ def _capture_web_evidence() -> _CaptureResult:
                 "() => window.scrollTo(0, "
                 "document.querySelector('.workspace').offsetTop - 12)"
             )
+            _settle_rendering(page)
             page.screenshot(
                 path=ASSET_DIR / "web-home-mobile.png",
                 animations="disabled",
@@ -828,9 +861,11 @@ def _capture_web_evidence() -> _CaptureResult:
                 "() => window.scrollTo(0, "
                 "document.querySelector('.workspace').offsetTop - 12)"
             )
+            _settle_rendering(page)
             frames = [page.screenshot(animations="disabled")]
             page.locator("#length").fill("7")
             page.locator("#length").evaluate("(element) => element.blur()")
+            _settle_rendering(page)
             frames.append(page.screenshot(animations="disabled"))
             with page.expect_navigation(wait_until="networkidle") as navigation:
                 page.locator("form").evaluate(
@@ -845,6 +880,7 @@ def _capture_web_evidence() -> _CaptureResult:
                 "() => window.scrollTo(0, "
                 "document.querySelector('.workspace').offsetTop - 12)"
             )
+            _settle_rendering(page)
             frames.append(page.screenshot(animations="disabled"))
             fidelity = write_gif(
                 frames=frames,
@@ -888,6 +924,61 @@ def _capture_web_evidence() -> _CaptureResult:
         )
 
 
+def _distribution_mapping(value: object, label: str) -> Mapping[str, object]:
+    if type(value) is not dict:
+        raise RuntimeError(f"distribution report field is not an object: {label}")
+    return cast(dict[str, object], value)
+
+
+def _distribution_digest(value: object, label: str) -> str:
+    if type(value) is not str or re.fullmatch(r"[0-9a-f]{64}", value) is None:
+        raise RuntimeError(f"distribution report digest is invalid: {label}")
+    return value
+
+
+def _write_distribution_evidence() -> None:
+    """Run one real attestation and render every derivative from that result."""
+
+    document = distribution_attester.attest(ROOT)
+    artifacts = _distribution_mapping(document.get("artifacts"), "artifacts")
+    wheel = _distribution_mapping(artifacts.get("wheel"), "artifacts.wheel")
+    sdist = _distribution_mapping(artifacts.get("sdist"), "artifacts.sdist")
+    source = _distribution_mapping(document.get("source"), "source")
+    input_sha256 = _distribution_digest(
+        source.get("distribution_input_sha256"),
+        "source.distribution_input_sha256",
+    )
+    wheel_sha256 = _distribution_digest(wheel.get("sha256"), "wheel.sha256")
+    sdist_sha256 = _distribution_digest(sdist.get("sha256"), "sdist.sha256")
+
+    json_text = distribution_attester._canonical_json(document)
+    transcript = (
+        "$ python scripts/attest_distribution.py\n"
+        + distribution_attester._text_report(document)
+    )
+    if _ABSOLUTE_PATH.search(json_text) or _ABSOLUTE_PATH.search(transcript):
+        raise RuntimeError("distribution evidence contains an absolute machine path")
+    (EVIDENCE_DIR / "distribution-attestation.json").write_text(
+        json_text,
+        encoding="utf-8",
+    )
+    (EVIDENCE_DIR / "distribution-check.txt").write_text(
+        transcript,
+        encoding="utf-8",
+    )
+    render_terminal_png(
+        transcript=transcript,
+        title="Distribution attestation · canonical archives verified",
+        path=ASSET_DIR / "distribution-check.png",
+    )
+    write_distribution_svg(
+        ASSET_DIR / "distribution-contract.svg",
+        input_sha256=input_sha256,
+        wheel_sha256=wheel_sha256,
+        sdist_sha256=sdist_sha256,
+    )
+
+
 def _normalize_quality_output(output: str) -> str:
     normalized = output.replace("\r\n", "\n").replace(str(ROOT), ".")
     normalized = _PYTEST_DURATION.sub(r"\1", normalized)
@@ -929,6 +1020,7 @@ def _quality_invocations() -> tuple[tuple[str, ...], ...]:
             "--cov-report=term-missing",
             "-q",
         ),
+        (str(PYTHON), "scripts/attest_distribution.py"),
         (str(PYTHON), "-m", "pip", "check"),
     )
 
@@ -959,7 +1051,9 @@ def _write_quality_evidence(transcript: str) -> None:
 
 def _source_paths() -> list[Path]:
     paths = [
+        ROOT / "MANIFEST.in",
         ROOT / "Makefile",
+        ROOT / "PACKAGE.md",
         ROOT / "README.md",
         ROOT / "app.py",
         ROOT / "pyproject.toml",
@@ -1011,6 +1105,14 @@ def _artifact_assertions() -> dict[str, list[str]]:
             "rendered from exact deterministic CLI transcript",
             "sampled candidate absent",
         ],
+        "docs/assets/distribution-check.png": [
+            "rendered from the real distribution attestation transcript",
+            "canonical wheel, sdist rebuild, and installed smoke passed",
+        ],
+        "docs/assets/distribution-contract.svg": [
+            "rendered from measured distribution hashes and member counts",
+            "claim boundaries remain explicit",
+        ],
         "docs/assets/quality-gate.png": [
             "rendered from normalized real gate transcript",
             "all commands exited zero",
@@ -1049,6 +1151,14 @@ def _artifact_assertions() -> dict[str, list[str]]:
             "real CLI output",
             "timestamp and absolute path absent",
         ],
+        "docs/evidence/distribution-attestation.json": [
+            "canonical path-free report from two real builds",
+            "exact archive inventories and honest claim boundaries",
+        ],
+        "docs/evidence/distribution-check.txt": [
+            "real normalized attestation output",
+            "no password sampled",
+        ],
         "docs/evidence/quality-gate.txt": [
             "real normalized command output",
             "timing and absolute path absent",
@@ -1069,6 +1179,7 @@ def _media_type(path: Path) -> str:
     return {
         ".csv": "text/csv",
         ".gif": "image/gif",
+        ".json": "application/json",
         ".png": "image/png",
         ".svg": "image/svg+xml",
         ".txt": "text/plain",
@@ -1125,6 +1236,7 @@ def _manifest(
     return {
         "artifacts": _artifact_manifest(),
         "capture": {
+            "chromium_launch_args": list(CHROMIUM_ARGS),
             "requests": capture.requests,
             "sampler_calls": capture.sampler_calls,
             "sampling_guard": "raise-on-call",
@@ -1181,7 +1293,10 @@ def _write_manifest(manifest: dict[str, object]) -> None:
 def _provisional_quality_transcript() -> str:
     existing = EVIDENCE_DIR / "quality-gate.txt"
     if existing.is_file() and (ASSET_DIR / "quality-gate.png").is_file():
-        return existing.read_text(encoding="utf-8")
+        transcript = existing.read_text(encoding="utf-8")
+        offsets = [transcript.find(command) for command in QUALITY_COMMANDS]
+        if all(offset >= 0 for offset in offsets) and offsets == sorted(offsets):
+            return transcript
     return (
         "\n".join(
             f"$ {command}\nprovisional evidence graph ready"
@@ -1201,6 +1316,7 @@ def main() -> int:
     write_architecture_svg(ASSET_DIR / "architecture.svg")
     write_sampling_svg(ASSET_DIR / "uniform-sampling-flow.svg")
     write_setup_svg(ASSET_DIR / "setup-workflow.svg")
+    _write_distribution_evidence()
 
     sweep_rows = _write_cli_evidence()
     _render_sweep_chart(sweep_rows)
@@ -1234,7 +1350,10 @@ def main() -> int:
         raise RuntimeError("normalized quality gate did not reach a fixed point")
     if (EVIDENCE_DIR / "quality-gate.txt").read_text(encoding="utf-8") != second_gate:
         raise RuntimeError("committed quality transcript differs from verified gate")
-    print("Evidence rebuilt and verified: 14 artifacts + canonical manifest.")
+    print(
+        f"Evidence rebuilt and verified: {len(OUTPUT_PATHS)} artifacts + "
+        "canonical manifest."
+    )
     return 0
 
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import importlib.util
 import json
 import struct
@@ -44,6 +45,19 @@ class _Checker(Protocol):
     def _expected_inspection(self, report: StateSpaceInspection) -> str: ...
 
     def _load_json(self, path: Path) -> tuple[dict[str, object], str]: ...
+
+    def _distribution_input_digest(self, root: Path) -> str: ...
+
+    def _validate_distribution_attestation(
+        self,
+        root: Path,
+        document: dict[str, object],
+        json_text: str,
+        transcript: str,
+        diagram: str,
+    ) -> None: ...
+
+    def _validate_capture(self, value: object) -> dict[str, tuple[int, int]]: ...
 
     def _validate_ast_claims(
         self,
@@ -251,6 +265,105 @@ def test_manifest_loader_rejects_duplicates_and_noncanonical_json(
     path.write_text(json.dumps({"schema_version": 1}) + "\n", encoding="utf-8")
     with pytest.raises(check_evidence.EvidenceValidationError, match="canonical"):
         check_evidence._load_json(path)
+
+
+def test_distribution_attestation_is_source_bound_and_rejects_overclaim() -> None:
+    root = Path(__file__).resolve().parents[1]
+    path = root / "docs/evidence/distribution-attestation.json"
+    document, text = check_evidence._load_json(path)
+    transcript = (root / "docs/evidence/distribution-check.txt").read_text(
+        encoding="utf-8"
+    )
+    diagram = (root / "docs/assets/distribution-contract.svg").read_text(
+        encoding="utf-8"
+    )
+
+    check_evidence._validate_distribution_attestation(
+        root,
+        document,
+        text,
+        transcript,
+        diagram,
+    )
+    source = cast(dict[str, object], document["source"])
+    assert set(source) == {
+        "distribution_input_count",
+        "distribution_input_sha256",
+        "git_index_stage",
+    }
+    assert source["distribution_input_sha256"] == (
+        check_evidence._distribution_input_digest(root)
+    )
+
+    overclaimed = copy.deepcopy(document)
+    boundaries = cast(dict[str, object], overclaimed["claim_boundaries"])
+    boundaries["license_declared"] = True
+    with pytest.raises(
+        check_evidence.EvidenceValidationError,
+        match="claim boundaries",
+    ):
+        check_evidence._validate_distribution_attestation(
+            root,
+            overclaimed,
+            text,
+            transcript,
+            diagram,
+        )
+
+    stale = copy.deepcopy(document)
+    stale_source = cast(dict[str, object], stale["source"])
+    stale_source["distribution_input_sha256"] = "0" * 64
+    with pytest.raises(
+        check_evidence.EvidenceValidationError,
+        match="input digest",
+    ):
+        check_evidence._validate_distribution_attestation(
+            root,
+            stale,
+            text,
+            transcript,
+            diagram,
+        )
+
+
+def test_distribution_attestation_rejects_self_referential_git_fields() -> None:
+    root = Path(__file__).resolve().parents[1]
+    document, text = check_evidence._load_json(
+        root / "docs/evidence/distribution-attestation.json"
+    )
+    transcript = (root / "docs/evidence/distribution-check.txt").read_text(
+        encoding="utf-8"
+    )
+    diagram = (root / "docs/assets/distribution-contract.svg").read_text(
+        encoding="utf-8"
+    )
+    source = cast(dict[str, object], document["source"])
+    source["git_index_tree"] = "a" * 40
+
+    with pytest.raises(
+        check_evidence.EvidenceValidationError,
+        match="unexpected schema",
+    ):
+        check_evidence._validate_distribution_attestation(
+            root,
+            document,
+            text,
+            transcript,
+            diagram,
+        )
+
+
+def test_capture_rejects_unpinned_parallel_rasterization() -> None:
+    root = Path(__file__).resolve().parents[1]
+    document, _ = check_evidence._load_json(root / check_evidence.MANIFEST_PATH)
+    capture = cast(dict[str, object], document["capture"])
+    capture["chromium_launch_args"] = []
+
+    with pytest.raises(
+        check_evidence.EvidenceValidationError,
+        match="one raster thread",
+    ):
+        check_evidence._validate_capture(capture)
 
 
 def test_ast_claims_match_the_audited_core() -> None:

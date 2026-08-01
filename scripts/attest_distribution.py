@@ -224,7 +224,6 @@ class SourceState:
     files: tuple[SourceFile, ...]
     input_sha256: str
     tree: str
-    revision: str | None
 
     def payload(self, path: str) -> bytes:
         for source_file in self.files:
@@ -351,26 +350,6 @@ def _parse_tree_entries(raw: bytes) -> tuple[IndexEntry, ...]:
         observed.add(path)
         result.append(IndexEntry(path, object_id))
     return tuple(result)
-
-
-def _matching_inputs_revision(
-    index_entries: Sequence[IndexEntry],
-    head_entries: Sequence[IndexEntry],
-    revision: str,
-) -> str | None:
-    """Return HEAD only when it contains every exact distribution input blob."""
-
-    if _OBJECT_ID.fullmatch(revision) is None:
-        _reject("repository-invalid")
-    indexed = {entry.path: entry.object_id for entry in index_entries}
-    committed = {entry.path: entry.object_id for entry in head_entries}
-    if (
-        len(indexed) != len(index_entries)
-        or len(committed) != len(head_entries)
-        or set(indexed) != set(DISTRIBUTION_INPUTS)
-    ):
-        _reject("repository-invalid")
-    return revision if committed == indexed else None
 
 
 def _canonical_input_digest(files: Sequence[tuple[str, bytes]]) -> str:
@@ -688,33 +667,6 @@ def _collect_source(repository: Path) -> SourceState:
     _validate_project_configuration(
         next(item.data for item in source_files if item.path == "pyproject.toml")
     )
-    candidate_revision = (
-        _git(
-            root,
-            ("rev-parse", "--verify", "HEAD"),
-        )
-        .decode("ascii")
-        .strip()
-    )
-    if _OBJECT_ID.fullmatch(candidate_revision) is None:
-        _reject("repository-invalid")
-    head_entries = _parse_tree_entries(
-        _git(
-            root,
-            (
-                "ls-tree",
-                "-r",
-                "-z",
-                candidate_revision,
-                "--",
-                "MANIFEST.in",
-                "PACKAGE.md",
-                "pyproject.toml",
-                "src/password_policy_lab",
-            ),
-        )
-    )
-    revision = _matching_inputs_revision(entries, head_entries, candidate_revision)
     final_tree = _git(root, ("write-tree",)).decode("ascii").strip()
     if final_tree != source_tree:
         _reject("source-dirty")
@@ -724,7 +676,6 @@ def _collect_source(repository: Path) -> SourceState:
         tuple(source_files),
         _canonical_input_digest(pairs),
         source_tree,
-        revision,
     )
 
 
@@ -1233,9 +1184,7 @@ def _build_report(
         "source": {
             "distribution_input_count": len(source.files),
             "distribution_input_sha256": source.input_sha256,
-            "distribution_inputs_revision": source.revision,
             "git_index_stage": 0,
-            "git_index_tree": source.tree,
         },
         "toolchain": {
             "build": toolchain.build,

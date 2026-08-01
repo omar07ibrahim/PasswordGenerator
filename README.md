@@ -39,8 +39,8 @@ make check
 
 The package supports Python 3.11 or newer. `make check` runs Ruff, formatting,
 strict mypy, exhaustive and independent mathematical oracles, real Flask
-request tests, 100% combined line/branch coverage, and the committed-evidence
-integrity check.
+request tests, 100% combined line/branch coverage, the distribution
+attestation, and the committed-evidence integrity check.
 
 Start the pinned production WSGI server on loopback:
 
@@ -55,6 +55,48 @@ waitress-serve \
 ```
 
 Then open `http://127.0.0.1:5000`.
+
+## Reproducible distribution contract
+
+![Measured distribution build, rebuild, and installed-smoke flow](docs/assets/distribution-contract.svg)
+
+`make distribution-check` does not trust the migrated worktree's file modes or
+an implicit setuptools file list. It snapshots exactly 15 stage-zero Git blobs,
+materializes two normalized source trees, builds both with the pinned
+`setuptools==83.0.0`, and validates exact archive inventories:
+
+- the wheel has 17 regular members with fixed ZIP metadata and a complete,
+  canonical `RECORD`;
+- the sdist has 23 regular files and six directories, with fixed modes, epoch,
+  owner fields, member order, and gzip header;
+- a wheel rebuilt from the safely materialized canonical sdist is byte-for-byte
+  equal to the canonicalized wheel produced by each primary build;
+- an offline `pip --target` install from an external working directory imports
+  package code and metadata from that target, finds both package resources, and
+  runs deterministic `inspect --length 20 --format json` twice without sampling.
+
+![Real distribution attestation terminal output](docs/assets/distribution-check.png)
+
+Run the attested path with:
+
+```bash
+make distribution-check
+```
+
+The raw [`distribution-check.txt`](docs/evidence/distribution-check.txt) and
+canonical
+[`distribution-attestation.json`](docs/evidence/distribution-attestation.json)
+record the input digest, complete member-level SHA-256 inventory, canonical
+archive hashes, rebuild equality, toolchain, smoke result, and negative claim
+boundaries. `make build` remains a conventional backend build for local
+inspection; its raw sdist contains environment-dependent metadata and is not
+presented as the canonical release artifact.
+
+The attestation is deliberately unofficial. It does not claim a license,
+artifact signature, dependency integrity, cross-platform reproducibility, or
+safety for arbitrary archives. The install smoke uses the current pinned
+checker dependencies without resolving them; it is not a fresh, hash-locked
+dependency environment.
 
 ## Architecture
 
@@ -169,6 +211,11 @@ make evidence-check
 temporary files under this repository. On a minimal Linux image, Chromium's OS
 runtime libraries still need to be supplied by that environment; the target
 never invokes a privileged system-package install.
+
+The capture contract waits for fonts and settled layout, preserves the declared
+viewport during full-page screenshots, and pins Chromium to one raster thread.
+That removes subpixel shadow races without replacing the real server-rendered
+interface with a mockup; the exact launch argument is recorded in the manifest.
 
 ![Real project quality gate](docs/assets/quality-gate.png)
 

@@ -39,6 +39,8 @@ EXPECTED_ASSETS = frozenset(
     {
         "docs/assets/architecture.svg",
         "docs/assets/cli-inspect.png",
+        "docs/assets/distribution-check.png",
+        "docs/assets/distribution-contract.svg",
         "docs/assets/quality-gate.png",
         "docs/assets/setup-workflow.svg",
         "docs/assets/state-space-sweep.png",
@@ -52,6 +54,8 @@ EXPECTED_ASSETS = frozenset(
 EXPECTED_RAW_EVIDENCE = frozenset(
     {
         "docs/evidence/cli-inspect.txt",
+        "docs/evidence/distribution-attestation.json",
+        "docs/evidence/distribution-check.txt",
         "docs/evidence/quality-gate.txt",
         "docs/evidence/state-space-sweep.csv",
     }
@@ -78,6 +82,7 @@ _FIDELITY_MAX_P999_DELTA = 32
 MEDIA_TYPES = {
     ".csv": "text/csv",
     ".gif": "image/gif",
+    ".json": "application/json",
     ".png": "image/png",
     ".svg": "image/svg+xml",
     ".txt": "text/plain",
@@ -95,8 +100,67 @@ QUALITY_COMMANDS = (
         "PYTHONPATH=src python -m pytest --cov=password_policy_lab "
         "--cov-branch --cov-report=term-missing -q"
     ),
+    "python scripts/attest_distribution.py",
     "python -m pip check",
 )
+DISTRIBUTION_INPUTS = (
+    "MANIFEST.in",
+    "PACKAGE.md",
+    "pyproject.toml",
+    "src/password_policy_lab/__init__.py",
+    "src/password_policy_lab/__main__.py",
+    "src/password_policy_lab/cli.py",
+    "src/password_policy_lab/errors.py",
+    "src/password_policy_lab/inspection.py",
+    "src/password_policy_lab/policy.py",
+    "src/password_policy_lab/profiles.py",
+    "src/password_policy_lab/py.typed",
+    "src/password_policy_lab/space.py",
+    "src/password_policy_lab/static/styles.css",
+    "src/password_policy_lab/templates/index.html",
+    "src/password_policy_lab/web.py",
+)
+_DISTRIBUTION_ROOT = "password_policy_state_space-0.1.0"
+_DIST_INFO = "password_policy_state_space-0.1.0.dist-info"
+_EGG_INFO = "src/password_policy_state_space.egg-info"
+_WHEEL_MEMBERS = (
+    "password_policy_lab/__init__.py",
+    "password_policy_lab/__main__.py",
+    "password_policy_lab/cli.py",
+    "password_policy_lab/errors.py",
+    "password_policy_lab/inspection.py",
+    "password_policy_lab/policy.py",
+    "password_policy_lab/profiles.py",
+    "password_policy_lab/py.typed",
+    "password_policy_lab/space.py",
+    "password_policy_lab/web.py",
+    "password_policy_lab/static/styles.css",
+    "password_policy_lab/templates/index.html",
+    f"{_DIST_INFO}/METADATA",
+    f"{_DIST_INFO}/WHEEL",
+    f"{_DIST_INFO}/entry_points.txt",
+    f"{_DIST_INFO}/top_level.txt",
+    f"{_DIST_INFO}/RECORD",
+)
+_SDIST_FILES = tuple(
+    sorted(
+        {
+            "MANIFEST.in",
+            "PACKAGE.md",
+            "PKG-INFO",
+            "pyproject.toml",
+            "setup.cfg",
+            *DISTRIBUTION_INPUTS[3:],
+            f"{_EGG_INFO}/PKG-INFO",
+            f"{_EGG_INFO}/SOURCES.txt",
+            f"{_EGG_INFO}/dependency_links.txt",
+            f"{_EGG_INFO}/entry_points.txt",
+            f"{_EGG_INFO}/requires.txt",
+            f"{_EGG_INFO}/top_level.txt",
+        }
+    )
+)
+_FIXED_DISTRIBUTION_MTIME = 1_704_067_200
 SWEEP_COLUMNS = (
     "length",
     "policy_sha256",
@@ -221,29 +285,35 @@ def _safe_path(root: Path, raw_path: object, label: str) -> tuple[str, Path]:
     return path, destination
 
 
-def _load_json(path: Path) -> tuple[dict[str, object], str]:
+def _load_json(
+    path: Path,
+    *,
+    label: str = "manifest",
+) -> tuple[dict[str, object], str]:
     try:
+        if not 0 < path.stat().st_size <= 2_000_000:
+            _fail(f"{label} has an invalid byte size")
         raw = path.read_bytes()
     except OSError:
-        _fail("manifest is missing or unreadable")
+        _fail(f"{label} is missing or unreadable")
     try:
         text = raw.decode("utf-8")
     except UnicodeDecodeError:
-        _fail("manifest must be UTF-8")
+        _fail(f"{label} must be UTF-8")
 
     def reject_duplicates(pairs: list[tuple[str, object]]) -> dict[str, object]:
         result: dict[str, object] = {}
         for key, value in pairs:
             if key in result:
-                _fail("manifest contains a duplicate object key")
+                _fail(f"{label} contains a duplicate object key")
             result[key] = value
         return result
 
     try:
         value = json.loads(text, object_pairs_hook=reject_duplicates)
     except (json.JSONDecodeError, RecursionError):
-        _fail("manifest is not valid bounded JSON")
-    document = _mapping(value, "manifest")
+        _fail(f"{label} is not valid bounded JSON")
+    document = _mapping(value, label)
     canonical = (
         json.dumps(
             document,
@@ -254,7 +324,7 @@ def _load_json(path: Path) -> tuple[dict[str, object], str]:
         + "\n"
     )
     if text != canonical:
-        _fail("manifest is not canonical sorted JSON")
+        _fail(f"{label} is not canonical sorted JSON")
     return document, text
 
 
@@ -694,7 +764,14 @@ def _validate_source_files(
         paths.append(path)
     if paths != sorted(paths) or len(paths) != len(set(paths)):
         _fail("source_files paths must be unique and sorted")
-    expected = {"Makefile", "README.md", "app.py", "pyproject.toml"}
+    expected = {
+        "MANIFEST.in",
+        "Makefile",
+        "PACKAGE.md",
+        "README.md",
+        "app.py",
+        "pyproject.toml",
+    }
     for directory_name in ("scripts", "src", "tests"):
         directory = root / directory_name
         if not directory.is_dir():
@@ -759,9 +836,21 @@ def _validate_capture(value: object) -> dict[str, tuple[int, int]]:
     capture = _mapping(value, "capture")
     _exact_keys(
         capture,
-        {"requests", "sampler_calls", "sampling_guard", "server"},
+        {
+            "chromium_launch_args",
+            "requests",
+            "sampler_calls",
+            "sampling_guard",
+            "server",
+        },
         "capture",
     )
+    launch_arguments = _validate_string_list(
+        capture["chromium_launch_args"],
+        "capture.chromium_launch_args",
+    )
+    if launch_arguments != ["--num-raster-threads=1"]:
+        _fail("capture must pin Chromium to one raster thread")
     server = _string(capture["server"], "capture.server")
     _validate_safe_text(server, "capture.server")
     if server != "waitress":
@@ -1089,6 +1178,376 @@ def _validate_raw_evidence(textual: dict[str, str]) -> None:
         _fail("quality-gate transcript omits ordered command headers")
 
 
+def _distribution_input_digest(root: Path) -> str:
+    digest = hashlib.sha256()
+    for relative in DISTRIBUTION_INPUTS:
+        data = _read_bounded(
+            root.joinpath(*relative.split("/")),
+            relative,
+            maximum=2 * 1024 * 1024,
+        )
+        encoded_path = relative.encode("ascii")
+        digest.update(len(encoded_path).to_bytes(4, "big"))
+        digest.update(encoded_path)
+        digest.update(len(data).to_bytes(8, "big"))
+        digest.update(data)
+    return digest.hexdigest()
+
+
+def _distribution_sha(value: object, label: str) -> str:
+    digest = _string(value, label)
+    if _SHA256.fullmatch(digest) is None:
+        _fail(f"{label} is not a lowercase SHA-256")
+    return digest
+
+
+def _sdist_inventory_plan() -> tuple[tuple[str, ...], frozenset[str]]:
+    directories = {_DISTRIBUTION_ROOT}
+    files: set[str] = set()
+    for relative in _SDIST_FILES:
+        full_name = f"{_DISTRIBUTION_ROOT}/{relative}"
+        files.add(full_name)
+        components = full_name.split("/")
+        for length in range(1, len(components)):
+            directories.add("/".join(components[:length]))
+    return tuple(sorted(directories | files)), frozenset(directories)
+
+
+def _validate_distribution_inventory(
+    root: Path,
+    value: object,
+    *,
+    kind: str,
+) -> None:
+    entries = _sequence(value, f"distribution.artifacts.{kind}.inventory")
+    expected_names: tuple[str, ...]
+    directories: frozenset[str]
+    if kind == "wheel":
+        expected_names = _WHEEL_MEMBERS
+        directories = frozenset()
+        source_names = {
+            path.removeprefix("src/"): path for path in DISTRIBUTION_INPUTS[3:]
+        }
+    else:
+        expected_names, directories = _sdist_inventory_plan()
+        source_names = {
+            f"{_DISTRIBUTION_ROOT}/{path}": path for path in DISTRIBUTION_INPUTS
+        }
+    observed: list[str] = []
+    empty_digest = hashlib.sha256(b"").hexdigest()
+    for index, raw_entry in enumerate(entries):
+        label = f"distribution.artifacts.{kind}.inventory[{index}]"
+        entry = _mapping(raw_entry, label)
+        _exact_keys(
+            entry,
+            {"compressed_size", "mode", "mtime", "name", "sha256", "size"},
+            label,
+        )
+        name = _string(entry["name"], f"{label}.name")
+        observed.append(name)
+        is_directory = name in directories
+        expected_mode = "0755" if is_directory else "0644"
+        if entry["mode"] != expected_mode:
+            _fail(f"{label}.mode is not canonical")
+        if entry["mtime"] != _FIXED_DISTRIBUTION_MTIME:
+            _fail(f"{label}.mtime is not canonical")
+        size = _integer(entry["size"], f"{label}.size")
+        digest = _distribution_sha(entry["sha256"], f"{label}.sha256")
+        if kind == "wheel":
+            _integer(
+                entry["compressed_size"],
+                f"{label}.compressed_size",
+                minimum=1,
+            )
+        elif entry["compressed_size"] is not None:
+            _fail(f"{label}.compressed_size must be null for tar members")
+        if is_directory and (size != 0 or digest != empty_digest):
+            _fail(f"{label} has invalid canonical directory facts")
+        source_path = source_names.get(name)
+        if source_path is not None:
+            source_data = _read_bounded(
+                root.joinpath(*source_path.split("/")),
+                source_path,
+                maximum=2 * 1024 * 1024,
+            )
+            if size != len(source_data) or digest != _sha256(source_data):
+                _fail(f"{label} does not match its repository source")
+    if tuple(observed) != expected_names:
+        _fail(f"distribution.artifacts.{kind}.inventory is not exact and ordered")
+
+
+def _validate_distribution_artifact(
+    root: Path,
+    value: object,
+    *,
+    kind: str,
+) -> str:
+    artifact = _mapping(value, f"distribution.artifacts.{kind}")
+    common = {
+        "canonical_builds_byte_equal",
+        "filename",
+        "inventory",
+        "member_count",
+        "raw_build_count",
+        "sha256",
+        "size",
+    }
+    extra = (
+        {"raw_builds_byte_equal", "sdist_rebuild_byte_equal"}
+        if kind == "wheel"
+        else {"raw_builds_byte_equality_claimed"}
+    )
+    _exact_keys(artifact, common | extra, f"distribution.artifacts.{kind}")
+    expected_count = 17 if kind == "wheel" else 29
+    expected_filename = (
+        "password_policy_state_space-0.1.0-py3-none-any.whl"
+        if kind == "wheel"
+        else "password_policy_state_space-0.1.0.tar.gz"
+    )
+    if artifact["filename"] != expected_filename:
+        _fail(f"distribution.artifacts.{kind}.filename is incorrect")
+    if artifact["member_count"] != expected_count:
+        _fail(f"distribution.artifacts.{kind}.member_count is incorrect")
+    if artifact["raw_build_count"] != 2:
+        _fail(f"distribution.artifacts.{kind}.raw_build_count is incorrect")
+    if not _boolean(
+        artifact["canonical_builds_byte_equal"],
+        f"distribution.artifacts.{kind}.canonical_builds_byte_equal",
+    ):
+        _fail(f"distribution.artifacts.{kind} canonical builds did not match")
+    if kind == "wheel":
+        if not _boolean(
+            artifact["raw_builds_byte_equal"],
+            "distribution.artifacts.wheel.raw_builds_byte_equal",
+        ) or not _boolean(
+            artifact["sdist_rebuild_byte_equal"],
+            "distribution.artifacts.wheel.sdist_rebuild_byte_equal",
+        ):
+            _fail("distribution wheel equality claims are not proven")
+    elif _boolean(
+        artifact["raw_builds_byte_equality_claimed"],
+        "distribution.artifacts.sdist.raw_builds_byte_equality_claimed",
+    ):
+        _fail("raw sdist byte equality must remain unclaimed")
+    size = _integer(artifact["size"], f"distribution.artifacts.{kind}.size", minimum=1)
+    if size > 5 * 1024 * 1024:
+        _fail(f"distribution.artifacts.{kind}.size exceeds the contract")
+    digest = _distribution_sha(
+        artifact["sha256"],
+        f"distribution.artifacts.{kind}.sha256",
+    )
+    _validate_distribution_inventory(root, artifact["inventory"], kind=kind)
+    return digest
+
+
+def _expected_distribution_transcript(document: dict[str, object]) -> str:
+    artifacts = _mapping(document["artifacts"], "distribution.artifacts")
+    wheel = _mapping(artifacts["wheel"], "distribution.artifacts.wheel")
+    sdist = _mapping(artifacts["sdist"], "distribution.artifacts.sdist")
+    source = _mapping(document["source"], "distribution.source")
+    return (
+        "$ python scripts/attest_distribution.py\n"
+        "distribution attestation: PASS (unofficial)\n"
+        f"source: {source['distribution_input_count']} indexed inputs; "
+        f"sha256={source['distribution_input_sha256']}\n"
+        f"wheel: sha256={wheel['sha256']}; "
+        "two builds and sdist rebuild match\n"
+        f"sdist: sha256={sdist['sha256']}; "
+        "two canonical builds match (raw equality unclaimed)\n"
+        "smoke: deterministic inspect passed; no password sampled\n"
+        "boundaries: no license, signature, dependency-integrity, "
+        "cross-platform, or arbitrary-archive claim\n"
+    )
+
+
+def _validate_distribution_attestation(
+    root: Path,
+    document: dict[str, object],
+    json_text: str,
+    transcript: str,
+    diagram: str,
+) -> None:
+    _exact_keys(
+        document,
+        {
+            "artifacts",
+            "build",
+            "claim_boundaries",
+            "official",
+            "schema_version",
+            "smoke",
+            "source",
+            "toolchain",
+        },
+        "distribution",
+    )
+    if document["schema_version"] != 1:
+        _fail("distribution.schema_version must be 1")
+    if _boolean(document["official"], "distribution.official"):
+        _fail("distribution attestation must remain unofficial")
+
+    artifacts = _mapping(document["artifacts"], "distribution.artifacts")
+    _exact_keys(artifacts, {"sdist", "wheel"}, "distribution.artifacts")
+    wheel_sha = _validate_distribution_artifact(
+        root,
+        artifacts["wheel"],
+        kind="wheel",
+    )
+    sdist_sha = _validate_distribution_artifact(
+        root,
+        artifacts["sdist"],
+        kind="sdist",
+    )
+
+    build = _mapping(document["build"], "distribution.build")
+    _exact_keys(
+        build,
+        {
+            "build_count",
+            "build_isolation",
+            "fixed_source_date_epoch",
+            "locale",
+            "network_package_index_enabled",
+            "timezone",
+            "umask",
+        },
+        "distribution.build",
+    )
+    if (
+        build["build_count"] != 2
+        or build["fixed_source_date_epoch"] != _FIXED_DISTRIBUTION_MTIME
+        or build["locale"] != "C.UTF-8"
+        or build["timezone"] != "UTC"
+        or build["umask"] != "0022"
+        or _boolean(build["build_isolation"], "distribution.build.build_isolation")
+        or _boolean(
+            build["network_package_index_enabled"],
+            "distribution.build.network_package_index_enabled",
+        )
+    ):
+        _fail("distribution.build does not match the reproducible build contract")
+
+    boundaries = _mapping(
+        document["claim_boundaries"],
+        "distribution.claim_boundaries",
+    )
+    boundary_keys = {
+        "arbitrary_archive_safety",
+        "artifact_signature_verified",
+        "cross_platform_reproducibility",
+        "dependency_integrity_verified",
+        "fresh_dependency_environment",
+        "license_declared",
+    }
+    _exact_keys(boundaries, boundary_keys, "distribution.claim_boundaries")
+    if any(
+        _boolean(boundaries[key], f"distribution.claim_boundaries.{key}")
+        for key in boundary_keys
+    ):
+        _fail("distribution claim boundaries must all remain false")
+
+    source = _mapping(document["source"], "distribution.source")
+    _exact_keys(
+        source,
+        {
+            "distribution_input_count",
+            "distribution_input_sha256",
+            "git_index_stage",
+        },
+        "distribution.source",
+    )
+    input_sha = _distribution_sha(
+        source["distribution_input_sha256"],
+        "distribution.source.distribution_input_sha256",
+    )
+    if source["distribution_input_count"] != 15 or source["git_index_stage"] != 0:
+        _fail("distribution source cardinality or index stage is incorrect")
+    if input_sha != _distribution_input_digest(root):
+        _fail("distribution input digest does not match repository sources")
+
+    toolchain = _mapping(document["toolchain"], "distribution.toolchain")
+    _exact_keys(toolchain, {"build", "python", "setuptools"}, "distribution.toolchain")
+    python_version = _string(toolchain["python"], "distribution.toolchain.python")
+    if (
+        toolchain["build"] != "1.5.0"
+        or toolchain["setuptools"] != "83.0.0"
+        or re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", python_version) is None
+    ):
+        _fail("distribution.toolchain is not the pinned checker toolchain")
+
+    smoke = _mapping(document["smoke"], "distribution.smoke")
+    _exact_keys(
+        smoke,
+        {
+            "command",
+            "current_checker_dependencies",
+            "dependency_install_mode",
+            "deterministic",
+            "inspect_sha256",
+            "metadata_origin_in_target",
+            "package_origin_in_target",
+            "pip_compile_bytecode",
+            "pip_dependency_resolution",
+            "pip_index_enabled",
+            "resources_present",
+            "sampled_password",
+        },
+        "distribution.smoke",
+    )
+    dependencies = _mapping(
+        smoke["current_checker_dependencies"],
+        "distribution.smoke.current_checker_dependencies",
+    )
+    if dependencies != {"Flask": "3.1.3", "waitress": "3.0.2"}:
+        _fail("distribution smoke dependencies are not the pinned checker versions")
+    if (
+        smoke["command"] != "inspect --length 20 --format json"
+        or smoke["dependency_install_mode"] != "current-pinned-checker-environment"
+        or not _boolean(smoke["deterministic"], "distribution.smoke.deterministic")
+        or not _boolean(
+            smoke["metadata_origin_in_target"],
+            "distribution.smoke.metadata_origin_in_target",
+        )
+        or not _boolean(
+            smoke["package_origin_in_target"],
+            "distribution.smoke.package_origin_in_target",
+        )
+        or not _boolean(
+            smoke["resources_present"],
+            "distribution.smoke.resources_present",
+        )
+        or _boolean(
+            smoke["pip_compile_bytecode"],
+            "distribution.smoke.pip_compile_bytecode",
+        )
+        or _boolean(
+            smoke["pip_dependency_resolution"],
+            "distribution.smoke.pip_dependency_resolution",
+        )
+        or _boolean(smoke["pip_index_enabled"], "distribution.smoke.pip_index_enabled")
+        or _boolean(smoke["sampled_password"], "distribution.smoke.sampled_password")
+    ):
+        _fail("distribution smoke facts do not match the installed-target contract")
+    _distribution_sha(smoke["inspect_sha256"], "distribution.smoke.inspect_sha256")
+
+    _validate_safe_text(json_text, "distribution attestation")
+    if transcript != _expected_distribution_transcript(document):
+        _fail("distribution transcript does not agree with its canonical JSON")
+    required_diagram_terms = {
+        "15 stage-zero git blobs",
+        "17 exact members",
+        "23 files + 6 directories",
+        "installed smoke",
+        "official: false",
+        input_sha[:16],
+        wheel_sha[:16],
+        sdist_sha[:16],
+    }
+    folded_diagram = diagram.casefold()
+    if any(term not in folded_diagram for term in required_diagram_terms):
+        _fail("distribution diagram omits a measured fact or claim boundary")
+
+
 def _module_tree(root: Path, module: str) -> ast.Module:
     path = root / "src" / Path(*module.split(".")).with_suffix(".py")
     try:
@@ -1387,6 +1846,19 @@ def validate_evidence(root: Path) -> None:
     textual = _validate_artifacts(repository, document["artifacts"], viewports)
     for artifact, text in textual.items():
         _validate_safe_text(text, artifact)
+    distribution_document, distribution_text = _load_json(
+        repository / "docs/evidence/distribution-attestation.json",
+        label="distribution attestation",
+    )
+    if textual["docs/evidence/distribution-attestation.json"] != distribution_text:
+        _fail("distribution artifact text changed between bounded reads")
+    _validate_distribution_attestation(
+        repository,
+        distribution_document,
+        distribution_text,
+        textual["docs/evidence/distribution-check.txt"],
+        textual["docs/assets/distribution-contract.svg"],
+    )
     _validate_raw_evidence(textual)
     _validate_gif_fidelity(repository)
     _validate_ast_claims(repository, textual)

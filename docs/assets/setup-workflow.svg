@@ -57,6 +57,7 @@
     <text x="1106" y="281" class="node-detail">
       <tspan x="1106" dy="0">make check</tspan>
       <tspan x="1106" dy="24">lint · types · tests</tspan>
+      <tspan x="1106" dy="24">distribution · evidence</tspan>
     </text>
   </g>  <g filter="url(#shadow)">
     <rect x="70" y="475" width="430" height="150" rx="18" fill="#111c21" stroke="#36505a" stroke-width="2"/>

@@ -19,7 +19,6 @@ class _IndexEntry(Protocol):
 
 
 class _SourceState(Protocol):
-    revision: str | None
     tree: str
 
 
@@ -33,13 +32,6 @@ class _Attester(Protocol):
     def _parse_index_entries(self, raw: bytes) -> tuple[_IndexEntry, ...]: ...
 
     def _parse_tree_entries(self, raw: bytes) -> tuple[_IndexEntry, ...]: ...
-
-    def _matching_inputs_revision(
-        self,
-        index_entries: Sequence[_IndexEntry],
-        head_entries: Sequence[_IndexEntry],
-        revision: str,
-    ) -> str | None: ...
 
     def _canonical_input_digest(
         self,
@@ -180,49 +172,6 @@ def test_index_parser_rejects_ambiguous_or_nonregular_entries(raw: bytes) -> Non
         attest_distribution._parse_index_entries(raw)
 
 
-def test_distribution_revision_binds_only_when_every_index_blob_matches_head() -> None:
-    index_entries = attest_distribution._parse_index_entries(
-        b"".join(
-            _index_record(path) for path in attest_distribution.DISTRIBUTION_INPUTS
-        )
-    )
-    matching_head = attest_distribution._parse_tree_entries(
-        b"".join(_tree_record(path) for path in attest_distribution.DISTRIBUTION_INPUTS)
-    )
-    changed_head = attest_distribution._parse_tree_entries(
-        b"".join(
-            _tree_record(path, object_id=("b" * 40 if index == 4 else None))
-            for index, path in enumerate(attest_distribution.DISTRIBUTION_INPUTS)
-        )
-    )
-    revision = "c" * 40
-
-    assert (
-        attest_distribution._matching_inputs_revision(
-            index_entries,
-            matching_head,
-            revision,
-        )
-        == revision
-    )
-    assert (
-        attest_distribution._matching_inputs_revision(
-            index_entries,
-            changed_head,
-            revision,
-        )
-        is None
-    )
-    assert (
-        attest_distribution._matching_inputs_revision(
-            index_entries,
-            matching_head[:-1],
-            revision,
-        )
-        is None
-    )
-
-
 def test_source_collection_rejects_index_movement_after_immutable_snapshot(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -236,7 +185,6 @@ def test_source_collection_rejects_index_movement_after_immutable_snapshot(
     )
     source_tree = "1" * 40
     moved_tree = "2" * 40
-    head_revision = "3" * 40
     write_tree_calls = 0
     cat_file_targets: list[str] = []
 
@@ -258,15 +206,11 @@ def test_source_collection_rejects_index_movement_after_immutable_snapshot(
             return f"{tree}\n".encode("ascii")
         if command[:4] == ("ls-tree", "-r", "-z", source_tree):
             return tree_document
-        if command[:4] == ("ls-tree", "-r", "-z", head_revision):
-            return tree_document
         if command[:2] == ("cat-file", "blob"):
             cat_file_targets.append(command[2])
             return by_object_id[command[2]]
         if command[:3] == ("ls-files", "--others", "--exclude-standard"):
             return b""
-        if command == ("rev-parse", "--verify", "HEAD"):
-            return f"{head_revision}\n".encode("ascii")
         raise AssertionError(f"unexpected Git command: {command!r}")
 
     monkeypatch.setattr("portfolio_distribution_attester._git", fake_git)
@@ -282,7 +226,7 @@ def test_source_collection_rejects_index_movement_after_immutable_snapshot(
     assert all(not target.startswith(":") for target in cat_file_targets)
 
 
-def test_source_collection_resolves_head_before_reading_its_tree(
+def test_source_collection_reads_only_the_immutable_index_tree(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -294,7 +238,6 @@ def test_source_collection_resolves_head_before_reading_its_tree(
         for path in attest_distribution.DISTRIBUTION_INPUTS
     )
     source_tree = "4" * 40
-    resolved_head = "5" * 40
     tree_targets: list[str] = []
 
     def fake_git(
@@ -312,15 +255,13 @@ def test_source_collection_resolves_head_before_reading_its_tree(
             return f"{source_tree}\n".encode("ascii")
         if command[:3] == ("ls-tree", "-r", "-z"):
             tree_targets.append(command[3])
-            if command[3] not in {source_tree, resolved_head}:
+            if command[3] != source_tree:
                 raise AssertionError("tree lookup used a mutable ref")
             return tree_document
         if command[:2] == ("cat-file", "blob"):
             return by_object_id[command[2]]
         if command[:3] == ("ls-files", "--others", "--exclude-standard"):
             return b""
-        if command == ("rev-parse", "--verify", "HEAD"):
-            return f"{resolved_head}\n".encode("ascii")
         raise AssertionError(f"unexpected Git command: {command!r}")
 
     monkeypatch.setattr("portfolio_distribution_attester._git", fake_git)
@@ -328,8 +269,7 @@ def test_source_collection_resolves_head_before_reading_its_tree(
     source = attest_distribution._collect_source(tmp_path)
 
     assert source.tree == source_tree
-    assert source.revision == resolved_head
-    assert tree_targets == [source_tree, resolved_head]
+    assert tree_targets == [source_tree]
 
 
 def test_input_digest_is_order_independent_but_boundary_sensitive() -> None:

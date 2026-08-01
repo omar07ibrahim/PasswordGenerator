@@ -342,7 +342,11 @@ def write_setup_svg(path: Path) -> None:
             "Install project",
             ("pip install -e '.[dev]'", "pinned top-level dev tools"),
         ),
-        ("03", "Run gates", ("make check", "lint · types · tests")),
+        (
+            "03",
+            "Run gates",
+            ("make check", "lint · types · tests", "distribution · evidence"),
+        ),
     )
     nodes: list[str] = []
     arrows: list[str] = []
@@ -413,6 +417,140 @@ def write_setup_svg(path: Path) -> None:
             ),
             width=1600,
             height=650,
+            body=body,
+        ),
+        encoding="utf-8",
+    )
+
+
+def write_distribution_svg(
+    path: Path,
+    *,
+    input_sha256: str,
+    wheel_sha256: str,
+    sdist_sha256: str,
+) -> None:
+    """Render the measured Git-input-to-installed-wheel attestation flow."""
+
+    digests = (input_sha256, wheel_sha256, sdist_sha256)
+    if any(
+        len(digest) != 64
+        or any(character not in "0123456789abcdef" for character in digest)
+        for digest in digests
+    ):
+        raise ValueError("distribution evidence requires lowercase SHA-256 values")
+
+    nodes = (
+        _svg_node(
+            x=55,
+            y=205,
+            width=310,
+            height=162,
+            index="1",
+            title="Immutable inputs",
+            details=(
+                "15 stage-zero Git blobs",
+                f"sha256 {input_sha256[:16]}…",
+                "normalized modes + mtime",
+            ),
+        ),
+        _svg_node(
+            x=430,
+            y=205,
+            width=310,
+            height=162,
+            index="2",
+            title="Build A + B",
+            details=(
+                "setuptools 83.0.0",
+                "fixed epoch · umask 0022",
+                "package index disabled",
+            ),
+        ),
+        _svg_node(
+            x=805,
+            y=145,
+            width=350,
+            height=162,
+            index="3W",
+            title="Canonical wheel",
+            details=(
+                "17 exact members · 0644",
+                f"sha256 {wheel_sha256[:16]}…",
+                "two raw wheels byte-equal",
+            ),
+            accent=GOLD,
+        ),
+        _svg_node(
+            x=805,
+            y=380,
+            width=350,
+            height=162,
+            index="3S",
+            title="Canonical sdist",
+            details=(
+                "23 files + 6 directories",
+                f"sha256 {sdist_sha256[:16]}…",
+                "raw sdist equality unclaimed",
+            ),
+            accent=GOLD,
+        ),
+        _svg_node(
+            x=1220,
+            y=265,
+            width=310,
+            height=162,
+            index="4",
+            title="Sdist rebuild",
+            details=(
+                "safe manual materialization",
+                "canonical wheel byte-equal",
+                "no extractall",
+            ),
+        ),
+        _svg_node(
+            x=1595,
+            y=265,
+            width=310,
+            height=162,
+            index="5",
+            title="Installed smoke",
+            details=(
+                "offline pip --target",
+                "external cwd + exact origin",
+                "inspect only · no sample",
+            ),
+        ),
+    )
+    arrows = f"""
+  <g fill="none" stroke="{TEAL}" stroke-width="4" marker-end="url(#arrow-teal)">
+    <path d="M365 286 H430"/>
+    <path d="M740 286 C770 286 775 226 805 226"/>
+    <path d="M740 286 C770 286 775 461 805 461"/>
+    <path d="M1155 461 C1185 461 1190 346 1220 346"/>
+    <path d="M1530 346 H1595"/>
+  </g>
+  <path d="M1155 226 C1185 226 1190 316 1220 316" fill="none" stroke="{GOLD}" stroke-width="4" stroke-dasharray="10 8" marker-end="url(#arrow-gold)"/>
+"""
+    body = f"""  <text x="55" y="76" class="title">The release archive is measured, normalized, rebuilt, then installed</text>
+  <text x="55" y="116" class="subtitle">Every value comes from the real project-specific attestation; raw backend artifacts are never presented as canonical releases.</text>
+{"".join(nodes)}
+{arrows}
+  <rect x="55" y="625" width="1850" height="150" rx="18" fill="{SURFACE_RAISED}" stroke="{LINE}" stroke-width="2"/>
+  <text x="85" y="670" class="node-title">Claim boundary</text>
+  <text x="85" y="708" class="caption">No license, signature, dependency-integrity, cross-platform, or arbitrary-archive guarantee.</text>
+  <text x="85" y="742" class="caption">The smoke uses current pinned checker dependencies; it is not a fresh dependency environment.</text>
+  <text x="1855" y="742" text-anchor="end" class="node-code">official: false</text>"""
+    path.write_text(
+        _svg_document(
+            title="Reproducible distribution attestation flow",
+            description=(
+                "Fifteen immutable Git inputs feed two builds, canonical wheel "
+                "and source archives, a source-archive rebuild, and an installed "
+                "deterministic inspection smoke test."
+            ),
+            width=1960,
+            height=830,
             body=body,
         ),
         encoding="utf-8",
