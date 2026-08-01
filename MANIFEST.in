@@ -1,0 +1,3 @@
+include MANIFEST.in PACKAGE.md pyproject.toml
+recursive-include src/password_policy_lab *.css *.html *.py *.typed
+prune tests

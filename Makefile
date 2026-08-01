@@ -1,5 +1,6 @@
 PYTHON ?= python3
 EVIDENCE_WORK ?= $(CURDIR)/.evidence-work
+DISTRIBUTION_WORK ?= .evidence-work/distribution
 PLAYWRIGHT_BROWSERS_PATH ?= $(CURDIR)/.playwright-browsers
 EVIDENCE_ENV = \
 	PLAYWRIGHT_BROWSERS_PATH="$(PLAYWRIGHT_BROWSERS_PATH)" \
@@ -15,8 +16,8 @@ EVIDENCE_ENV = \
 	TEMP="$(EVIDENCE_WORK)/tmp"
 
 .PHONY: \
-	build check dependencies evidence evidence-browser evidence-check lint test \
-	typecheck
+	build check dependencies distribution-check evidence evidence-browser \
+	evidence-check lint test typecheck
 
 lint:
 	@$(PYTHON) -m ruff check app.py scripts src tests
@@ -38,6 +39,11 @@ build:
 dependencies:
 	@$(PYTHON) -m pip check
 
+distribution-check:
+	@PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/attest_distribution.py \
+		--root "$(CURDIR)" \
+		--work-root "$(DISTRIBUTION_WORK)"
+
 evidence-browser:
 	@mkdir -p "$(EVIDENCE_WORK)/tmp" "$(EVIDENCE_WORK)/xdg"
 	@$(EVIDENCE_ENV) $(PYTHON) -m playwright install chromium
@@ -52,4 +58,4 @@ evidence-check:
 		"$(EVIDENCE_WORK)/xdg"
 	@$(EVIDENCE_ENV) PYTHONPATH=src $(PYTHON) scripts/check_evidence.py
 
-check: lint typecheck test dependencies evidence-check
+check: lint typecheck test dependencies distribution-check evidence-check
