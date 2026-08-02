@@ -127,6 +127,44 @@ policy-satisfying share on an honest 0–100% scale. Counts and entropy describe
 uniform draw from this state space; they are not a password-strength score or an
 authentication guarantee.
 
+## Differential dynamic-programming work evidence
+
+![Exact logical work counters for six fixed policy scenarios](docs/assets/dp-work-counts.svg)
+
+The profiler constructs the real `PasswordSpace` under six fixed public
+policies and retains only deterministic logical counters. A context-managed
+iterator wrapper counts every deficit vector yielded to the production loop;
+`cProfile` independently records exact `_build_layers` and `_consume` call
+counts. Separate polynomial-convolution and class-population oracles must agree
+with layer occupancy and the final arbitrary-precision state-space total.
+
+The controlled comparison keeps length `24`, the same four class widths, and
+the same total minimum `24`: balanced minima `(6, 6, 6, 6)` materialize
+`31,213` cells and perform `124,848` transitions, while skewed minima
+`(21, 1, 1, 1)` materialize `2,288` cells and perform `9,148` transitions.
+This isolates the shape of the deficit state space instead of presenting a
+wall-clock benchmark.
+
+![Observed layer occupancy for five accepted policies and one explicit rejection boundary](docs/assets/dp-layer-occupancy.svg)
+
+The near-budget eight-class case is accepted at `164,025 / 216,513` cells and
+`1,312,192 / 1,732,104` transitions. Raising every minimum from `2` to `3`
+pushes the conservative bounds to `2,162,688` cells and `17,301,504`
+transitions; profiling observes zero product, layer-build, and consume calls
+because rejection happens before enumeration. The maximum-length one-class
+case remains accepted and reaches a `1,678`-bit count. That bit length describes
+integer arithmetic magnitude, not allocated memory.
+
+![Real deterministic complexity profiler output](docs/assets/dp-complexity-cli.png)
+
+Run the concise profile with `make complexity-profile`. The complete
+[canonical JSON receipt](docs/evidence/dp-complexity-profile.json) retains every
+accepted layer, while the
+[real command transcript](docs/evidence/dp-complexity-profile.txt) stays short
+enough to review. The evidence makes no elapsed-time, throughput, RSS,
+allocation, CPU, hardware, password-strength, or cross-machine performance
+claim. It consumes no entropy and constructs or emits no password candidate.
+
 ## Deterministic audit CLI
 
 The inspection commands never sample a password. They emit exact decimal

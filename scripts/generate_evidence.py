@@ -26,6 +26,7 @@ from unittest.mock import patch
 from urllib.parse import urlsplit
 
 import attest_distribution as distribution_attester
+import profile_complexity as complexity_profiler
 from evidence_rendering import (
     GOLD,
     LINE,
@@ -37,6 +38,8 @@ from evidence_rendering import (
     render_terminal_png,
     write_architecture_svg,
     write_distribution_svg,
+    write_dp_layer_occupancy_svg,
+    write_dp_work_counts_svg,
     write_gif,
     write_sampling_svg,
     write_setup_svg,
@@ -64,6 +67,12 @@ SWEEP_COMMAND = (
     "password-policy-lab sweep --start-length 8 --end-length 32 --format csv"
 )
 INSPECT_COMMAND = "password-policy-lab inspect --length 20 --format text"
+PROFILE_JSON_COMMAND = (
+    "PYTHONPATH=src python scripts/profile_complexity.py --format json"
+)
+PROFILE_TEXT_COMMAND = (
+    "PYTHONPATH=src python scripts/profile_complexity.py --format text"
+)
 QUALITY_COMMANDS = (
     "python -m ruff check app.py scripts src tests",
     "python -m ruff format --check app.py scripts src tests",
@@ -82,6 +91,9 @@ OUTPUT_PATHS = (
     "docs/assets/cli-inspect.png",
     "docs/assets/distribution-check.png",
     "docs/assets/distribution-contract.svg",
+    "docs/assets/dp-complexity-cli.png",
+    "docs/assets/dp-layer-occupancy.svg",
+    "docs/assets/dp-work-counts.svg",
     "docs/assets/quality-gate.png",
     "docs/assets/setup-workflow.svg",
     "docs/assets/state-space-sweep.png",
@@ -93,6 +105,8 @@ OUTPUT_PATHS = (
     "docs/evidence/cli-inspect.txt",
     "docs/evidence/distribution-attestation.json",
     "docs/evidence/distribution-check.txt",
+    "docs/evidence/dp-complexity-profile.json",
+    "docs/evidence/dp-complexity-profile.txt",
     "docs/evidence/quality-gate.txt",
     "docs/evidence/state-space-sweep.csv",
     "docs/evidence/web-validation-reference.png",
@@ -101,7 +115,12 @@ OUTPUT_PATHS = (
 _ABSOLUTE_PATH = re.compile(
     r"(?<![A-Za-z0-9_.-])/(?:home|tmp|usr|opt|var|private|Users)/[^\s:]+"
 )
-_PYTEST_DURATION = re.compile(r"(\d+ passed)(?: in \d+(?:\.\d+)?s)")
+_PYTEST_DURATION = re.compile(
+    r"(?m)^(?P<summary>\d+ passed"
+    r"(?:, \d+ (?:skipped|deselected|xfailed|xpassed|warnings?))*)"
+    r"(?: in \d+(?:\.\d+)?s(?: \(\d+:\d{2}:\d{2}\))?"
+    r"| \(\d+:\d{2}:\d{2}\))$"
+)
 
 
 class _WaitressServer(Protocol):
@@ -265,6 +284,50 @@ def _write_cli_evidence() -> list[_SweepRow]:
     if [row.length for row in rows] != list(range(8, 33)):
         raise RuntimeError("CLI sweep did not return the exact inclusive range 8..32")
     return rows
+
+
+def _write_complexity_evidence() -> dict[str, object]:
+    report = complexity_profiler.build_profile()
+    expected_json = complexity_profiler.profile_json(report)
+    expected_text = complexity_profiler.profile_text(report)
+    json_output = _run(
+        (
+            str(PYTHON),
+            "scripts/profile_complexity.py",
+            "--format",
+            "json",
+        )
+    )
+    text_output = _run(
+        (
+            str(PYTHON),
+            "scripts/profile_complexity.py",
+            "--format",
+            "text",
+        )
+    )
+    if json_output != expected_json or text_output != expected_text:
+        raise RuntimeError(
+            "complexity CLI output disagrees with the in-process profile"
+        )
+
+    (EVIDENCE_DIR / "dp-complexity-profile.json").write_text(
+        json_output,
+        encoding="utf-8",
+    )
+    transcript = f"$ {PROFILE_TEXT_COMMAND}\n{text_output}"
+    (EVIDENCE_DIR / "dp-complexity-profile.txt").write_text(
+        transcript,
+        encoding="utf-8",
+    )
+    render_terminal_png(
+        transcript=transcript,
+        title="Deterministic DP work profile · six fixed policies",
+        path=ASSET_DIR / "dp-complexity-cli.png",
+    )
+    write_dp_work_counts_svg(report, ASSET_DIR / "dp-work-counts.svg")
+    write_dp_layer_occupancy_svg(report, ASSET_DIR / "dp-layer-occupancy.svg")
+    return report
 
 
 def _render_sweep_chart(rows: Sequence[_SweepRow]) -> None:
@@ -981,7 +1044,7 @@ def _write_distribution_evidence() -> None:
 
 def _normalize_quality_output(output: str) -> str:
     normalized = output.replace("\r\n", "\n").replace(str(ROOT), ".")
-    normalized = _PYTEST_DURATION.sub(r"\1", normalized)
+    normalized = _PYTEST_DURATION.sub(r"\g<summary>", normalized)
     if _ABSOLUTE_PATH.search(normalized):
         raise RuntimeError("quality output contains an absolute machine path")
     return normalized.rstrip() + "\n"
@@ -1113,6 +1176,18 @@ def _artifact_assertions() -> dict[str, list[str]]:
             "rendered from measured distribution hashes and member counts",
             "claim boundaries remain explicit",
         ],
+        "docs/assets/dp-complexity-cli.png": [
+            "deterministic profiler output with selected cProfile call counts",
+            "timing, hardware, memory, entropy, and candidate output absent",
+        ],
+        "docs/assets/dp-layer-occupancy.svg": [
+            "rendered from every observed accepted DP layer",
+            "rejected policy has no invented occupancy curve",
+        ],
+        "docs/assets/dp-work-counts.svg": [
+            "exact product-vector, materialized-cell, and transition counts",
+            "balanced and skewed policies are directly comparable",
+        ],
         "docs/assets/quality-gate.png": [
             "rendered from normalized real gate transcript",
             "all commands exited zero",
@@ -1158,6 +1233,14 @@ def _artifact_assertions() -> dict[str, list[str]]:
         "docs/evidence/distribution-check.txt": [
             "real normalized attestation output",
             "no password sampled",
+        ],
+        "docs/evidence/dp-complexity-profile.json": [
+            "canonical report from six real instrumented constructions",
+            "independent occupancy and exact-count oracles agree",
+        ],
+        "docs/evidence/dp-complexity-profile.txt": [
+            "real concise profiler command output",
+            "no timing, hardware, memory, entropy, or candidate claim",
         ],
         "docs/evidence/quality-gate.txt": [
             "real normalized command output",
@@ -1232,7 +1315,9 @@ def _manifest(
     capture: _CaptureResult,
     architecture_verified: bool,
     sampling_verified: bool,
+    complexity_report: dict[str, object],
 ) -> dict[str, object]:
+    complexity_cases = cast(list[dict[str, object]], complexity_report["cases"])
     return {
         "artifacts": _artifact_manifest(),
         "capture": {
@@ -1250,6 +1335,21 @@ def _manifest(
             "diagrams": {
                 "architecture_ast_verified": architecture_verified,
                 "sampling_ast_verified": sampling_verified,
+            },
+            "dp_complexity_profile": {
+                "accepted_scenarios": sum(
+                    case["outcome"] == "accepted" for case in complexity_cases
+                ),
+                "contains_candidate": False,
+                "counter_contract": complexity_report["counter_contract"],
+                "json_source_command": PROFILE_JSON_COMMAND,
+                "rejected_before_enumeration": sum(
+                    case["outcome"] == "rejected-before-enumeration"
+                    for case in complexity_cases
+                ),
+                "report_schema_version": complexity_report["schema_version"],
+                "scenario_ids": [case["case_id"] for case in complexity_cases],
+                "text_source_command": PROFILE_TEXT_COMMAND,
             },
             "quality_gate": {
                 "all_passed": True,
@@ -1270,7 +1370,7 @@ def _manifest(
         },
         "generator": "scripts/generate_evidence.py",
         "runtime": _runtime_manifest(capture.chromium),
-        "schema_version": 1,
+        "schema_version": 2,
         "source_files": _source_manifest(),
     }
 
@@ -1317,6 +1417,7 @@ def main() -> int:
     write_sampling_svg(ASSET_DIR / "uniform-sampling-flow.svg")
     write_setup_svg(ASSET_DIR / "setup-workflow.svg")
     _write_distribution_evidence()
+    complexity_report = _write_complexity_evidence()
 
     sweep_rows = _write_cli_evidence()
     _render_sweep_chart(sweep_rows)
@@ -1328,6 +1429,7 @@ def main() -> int:
             capture=capture,
             architecture_verified=architecture_verified,
             sampling_verified=sampling_verified,
+            complexity_report=complexity_report,
         )
     )
 
@@ -1339,6 +1441,7 @@ def main() -> int:
                 capture=capture,
                 architecture_verified=architecture_verified,
                 sampling_verified=sampling_verified,
+                complexity_report=complexity_report,
             )
         )
         second_gate = _run_quality_gate()

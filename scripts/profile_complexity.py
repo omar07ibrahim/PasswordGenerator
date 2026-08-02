@@ -297,11 +297,13 @@ def profile_scenario(scenario: ComplexityScenario) -> dict[str, object]:
     layer_occupancy = tuple(len(layer) for layer in layers)
     oracle_occupancy = _layer_occupancy_oracle(policy.length, policy.minima)
     occupied_cells = sum(layer_occupancy)
+    oracle_occupied_cells = sum(oracle_occupancy)
     expected_product_calls = policy.length
     expected_product_vectors = (
         policy.length * bounds["state_vectors_upper_bound_per_layer"]
     )
-    expected_transitions = len(policy.classes) * (occupied_cells - 1)
+    observed_transitions = consume_calls["primitive_calls"]
+    oracle_transitions = len(policy.classes) * (oracle_occupied_cells - 1)
     widths = tuple(len(item.symbols) for item in policy.classes)
     oracle_total = _state_space_oracle(policy.length, widths, policy.minima)
     peak_count_bits = max(
@@ -315,8 +317,8 @@ def profile_scenario(scenario: ComplexityScenario) -> dict[str, object]:
     if product_counter.vectors != expected_product_vectors:
         raise RuntimeError("profiled product vectors disagree with the oracle")
     if consume_calls != {
-        "primitive_calls": expected_transitions,
-        "total_calls": expected_transitions,
+        "primitive_calls": oracle_transitions,
+        "total_calls": oracle_transitions,
     }:
         raise RuntimeError("profiled transition calls disagree with the oracle")
     if build_calls != {"primitive_calls": 1, "total_calls": 1}:
@@ -332,13 +334,13 @@ def profile_scenario(scenario: ComplexityScenario) -> dict[str, object]:
         "observed": {
             "layer_occupancy": list(layer_occupancy),
             "occupied_cells": occupied_cells,
-            "transitions": expected_transitions,
+            "transitions": observed_transitions,
             "peak_count_bits": peak_count_bits,
             "valid_state_space": str(space.total),
         },
         "independent_oracles": {
-            "occupied_cells": sum(oracle_occupancy),
-            "transitions": expected_transitions,
+            "occupied_cells": oracle_occupied_cells,
+            "transitions": oracle_transitions,
             "valid_state_space": str(oracle_total),
         },
     }
@@ -426,7 +428,7 @@ def profile_text(report: dict[str, object]) -> str:
     """Render a concise transcript without candidate or timing data."""
 
     lines = [
-        "Password Policy State-Space Lab — deterministic DP work profile",
+        "Password Policy State-Space Lab - deterministic DP work profile",
         f"schema_version: {PROFILE_SCHEMA_VERSION}",
         f"scenario_set: {SCENARIO_SET}",
         "profiler: cProfile selected project call counts; timing discarded",

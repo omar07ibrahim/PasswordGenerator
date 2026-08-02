@@ -50,14 +50,50 @@
     },
     {
       "assertions": [
+        "deterministic profiler output with selected cProfile call counts",
+        "timing, hardware, memory, entropy, and candidate output absent"
+      ],
+      "bytes": 104431,
+      "height": 706,
+      "media_type": "image/png",
+      "path": "docs/assets/dp-complexity-cli.png",
+      "sha256": "ed94a3aca71400fec0088c4bbab1f6b3afb1f76d3504d51fcde0c7d8e0c47776",
+      "width": 1600
+    },
+    {
+      "assertions": [
+        "rendered from every observed accepted DP layer",
+        "rejected policy has no invented occupancy curve"
+      ],
+      "bytes": 13138,
+      "height": 1320,
+      "media_type": "image/svg+xml",
+      "path": "docs/assets/dp-layer-occupancy.svg",
+      "sha256": "2c4155a32eddc3a48fe6d2f3fe7a93c6f1a8910e45e2e93ad6cffc15dd4f168d",
+      "width": 1800
+    },
+    {
+      "assertions": [
+        "exact product-vector, materialized-cell, and transition counts",
+        "balanced and skewed policies are directly comparable"
+      ],
+      "bytes": 9045,
+      "height": 1120,
+      "media_type": "image/svg+xml",
+      "path": "docs/assets/dp-work-counts.svg",
+      "sha256": "9acdd587d0a8464bc8952902fc3f92f00cc428527c185fc4d60cc03aaaff7d2e",
+      "width": 1800
+    },
+    {
+      "assertions": [
         "rendered from normalized real gate transcript",
         "all commands exited zero"
       ],
-      "bytes": 146227,
+      "bytes": 146498,
       "height": 1276,
       "media_type": "image/png",
       "path": "docs/assets/quality-gate.png",
-      "sha256": "0b96bcbaca72adc18d1809d260d5fdd5b2d6c83dc58d34935dd2f489fe2e873d",
+      "sha256": "48fa53a3b0fc7736433e304898164aa6ee2c9afdd38e81d0c7b392590a96d9db",
       "width": 1600
     },
     {
@@ -179,13 +215,33 @@
     },
     {
       "assertions": [
+        "canonical report from six real instrumented constructions",
+        "independent occupancy and exact-count oracles agree"
+      ],
+      "bytes": 14697,
+      "media_type": "application/json",
+      "path": "docs/evidence/dp-complexity-profile.json",
+      "sha256": "86d9c8fe43f8af462dc300f9174149db6ae89700e0895f814597e7e3e0102265"
+    },
+    {
+      "assertions": [
+        "real concise profiler command output",
+        "no timing, hardware, memory, entropy, or candidate claim"
+      ],
+      "bytes": 1114,
+      "media_type": "text/plain",
+      "path": "docs/evidence/dp-complexity-profile.txt",
+      "sha256": "abafbf17802b02deb570c5a43cf4dbb94148f748bf398b079f3d5f3e071f98b7"
+    },
+    {
+      "assertions": [
         "real normalized command output",
         "timing and absolute path absent"
       ],
       "bytes": 1874,
       "media_type": "text/plain",
       "path": "docs/evidence/quality-gate.txt",
-      "sha256": "b5b4d6c218c2130c499f6a4f1311952a208569741eb67a61337f3131698fe967"
+      "sha256": "e5e71ef16b8c36026ae9af49698b7e2c67d0619592e9975efac26f3870653f53"
     },
     {
       "assertions": [
@@ -305,6 +361,23 @@
       "architecture_ast_verified": true,
       "sampling_ast_verified": true
     },
+    "dp_complexity_profile": {
+      "accepted_scenarios": 5,
+      "contains_candidate": false,
+      "counter_contract": "logical-dp-operations-v1",
+      "json_source_command": "PYTHONPATH=src python scripts/profile_complexity.py --format json",
+      "rejected_before_enumeration": 1,
+      "report_schema_version": 1,
+      "scenario_ids": [
+        "default-visible-ascii-20",
+        "balanced-visible-ascii-24",
+        "skewed-visible-ascii-24",
+        "near-budget-eight-class-32",
+        "arbitrary-precision-one-class-256",
+        "rejected-eight-class-32"
+      ],
+      "text_source_command": "PYTHONPATH=src python scripts/profile_complexity.py --format text"
+    },
     "quality_gate": {
       "all_passed": true,
       "commands": [
@@ -344,7 +417,7 @@
     "python": "3.12.3",
     "waitress": "3.0.2"
   },
-  "schema_version": 1,
+  "schema_version": 2,
   "source_files": [
     {
       "path": "MANIFEST.in",
@@ -360,7 +433,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "405ede3a7f253df40b64180f804e4a228872132aaaf6ad5c282fcb65f4a2c42b"
+      "sha256": "2524d9e69d196ed23bb76be3659ebd690d17a3b4a7c974b02f1c7bab3bcde2e4"
     },
     {
       "path": "app.py",
@@ -376,7 +449,7 @@
     },
     {
       "path": "scripts/check_evidence.py",
-      "sha256": "eb72f02fd3fc50536aee670f0b83badffd1d9b13df5fa16d87c38a78be8cf881"
+      "sha256": "47b8739b7fde11642d88963d74b53aecfed96fc3e6ddc0cbb3dbf4770c7e7f4a"
     },
     {
       "path": "scripts/distribution_contract.py",
@@ -384,15 +457,15 @@
     },
     {
       "path": "scripts/evidence_rendering.py",
-      "sha256": "b313270e49c26a9eb8b966805df21b5c46ed30823794cb5272014efb9f100a92"
+      "sha256": "bc55294f4ad8e0c22e4059b302a6681d572cba066c79c979406f833f176eb380"
     },
     {
       "path": "scripts/generate_evidence.py",
-      "sha256": "96e00dd2f4e48c6ffb20d7543ef02b687d3f94df2d259bc064d2b6f48ef3c534"
+      "sha256": "d4bedb3609f542683b2d2b28dc8194204537ea21708507f201257301db9fa033"
     },
     {
       "path": "scripts/profile_complexity.py",
-      "sha256": "fcc4c3d050d2cf8f9ef11acf87f0853e80aede3bce9cb0d405596d0a65e70f3e"
+      "sha256": "aa77bdcadfb1f2d621eb88be986dda9d75872518d592e00d5c88f792cb78c214"
     },
     {
       "path": "src/password_policy_lab/__init__.py",
@@ -452,7 +525,11 @@
     },
     {
       "path": "tests/test_complexity_profile.py",
-      "sha256": "e6b127df936de0c47b6cf697e44d18d6618fb331201b2c02697fc69cacd8f167"
+      "sha256": "7cb577e444eac0549398a79512d84dcea68528400cf0ef0b52285d60397b3245"
+    },
+    {
+      "path": "tests/test_complexity_rendering.py",
+      "sha256": "6fe89cdf5bfeb61fba87662ce70dec7a7f41d24ed8d6d3295321dec651a62ca7"
     },
     {
       "path": "tests/test_counting.py",
@@ -468,7 +545,11 @@
     },
     {
       "path": "tests/test_evidence.py",
-      "sha256": "8bc201dce3424e6456090e803fa0da4e83f625cb0ce2fc186f33ed255f12121c"
+      "sha256": "0f28070b81ff1e084d0eaa130b12f3cf61a949ca8d1c0372a8d5581aaa0c059c"
+    },
+    {
+      "path": "tests/test_evidence_generation.py",
+      "sha256": "1f4e6869e12494e13f8f792d27be2ed6a0e6883250537fa4cc650bc77e4c80f9"
     },
     {
       "path": "tests/test_inspection.py",

@@ -1,0 +1,15 @@
+$ PYTHONPATH=src python scripts/profile_complexity.py --format text
+Password Policy State-Space Lab - deterministic DP work profile
+schema_version: 1
+scenario_set: deterministic-dp-work-v1
+profiler: cProfile selected project call counts; timing discarded
+
+default-visible-ascii-20: accepted · cells 304/336 · transitions 1212/1344 · peak integer 132 bits
+balanced-visible-ascii-24: accepted · cells 31213/60025 · transitions 124848/240100 · peak integer 158 bits
+skewed-visible-ascii-24: accepted · cells 2288/4400 · transitions 9148/17600 · peak integer 158 bits
+near-budget-eight-class-32: accepted · cells 164025/216513 · transitions 1312192/1732104 · peak integer 97 bits
+arbitrary-precision-one-class-256: accepted · cells 33153/66049 · transitions 33152/66049 · peak integer 1678 bits
+rejected-eight-class-32: rejected before enumeration · cells bound 2162688 · transitions bound 17301504 · build calls 0 · consume calls 0
+
+Scope: deterministic work counts only; no elapsed-time, RSS, hardware, or speed claim.
+Safety: no entropy consumed and no password candidate constructed or emitted.

@@ -8,6 +8,7 @@ import ast
 import csv
 import hashlib
 import html
+import importlib.util
 import io
 import json
 import re
@@ -15,8 +16,11 @@ import struct
 import sys
 import zlib
 from collections.abc import Sequence
+from functools import lru_cache
+from math import prod
 from pathlib import Path, PurePosixPath
-from typing import NoReturn, cast
+from types import ModuleType
+from typing import Any, NoReturn, cast
 from xml.etree import ElementTree
 
 from PIL import Image
@@ -31,9 +35,38 @@ from password_policy_lab.profiles import (
     VISIBLE_ASCII_PROFILE,
     visible_ascii_policy,
 )
+from password_policy_lab.space import MAX_DP_CELLS, MAX_DP_TRANSITIONS
 
 MANIFEST_PATH = "docs/evidence/manifest.json"
 GENERATOR_PATH = "scripts/generate_evidence.py"
+COMPLEXITY_JSON_PATH = "docs/evidence/dp-complexity-profile.json"
+COMPLEXITY_TEXT_PATH = "docs/evidence/dp-complexity-profile.txt"
+COMPLEXITY_JSON_COMMAND = (
+    "PYTHONPATH=src python scripts/profile_complexity.py --format json"
+)
+COMPLEXITY_TEXT_COMMAND = (
+    "PYTHONPATH=src python scripts/profile_complexity.py --format text"
+)
+COMPLEXITY_PNG_TITLE = "Deterministic DP work profile · six fixed policies"
+
+
+def _load_local_module(name: str) -> ModuleType:
+    """Load one sibling evidence module without relying on caller sys.path."""
+
+    path = Path(__file__).with_name(f"{name}.py")
+    spec = importlib.util.spec_from_file_location(
+        f"password_policy_evidence_{name}",
+        path,
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"could not load local evidence module: {name}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+complexity_profiler = cast(Any, _load_local_module("profile_complexity"))
 
 EXPECTED_ASSETS = frozenset(
     {
@@ -41,6 +74,9 @@ EXPECTED_ASSETS = frozenset(
         "docs/assets/cli-inspect.png",
         "docs/assets/distribution-check.png",
         "docs/assets/distribution-contract.svg",
+        "docs/assets/dp-complexity-cli.png",
+        "docs/assets/dp-layer-occupancy.svg",
+        "docs/assets/dp-work-counts.svg",
         "docs/assets/quality-gate.png",
         "docs/assets/setup-workflow.svg",
         "docs/assets/state-space-sweep.png",
@@ -56,6 +92,8 @@ EXPECTED_RAW_EVIDENCE = frozenset(
         "docs/evidence/cli-inspect.txt",
         "docs/evidence/distribution-attestation.json",
         "docs/evidence/distribution-check.txt",
+        COMPLEXITY_JSON_PATH,
+        COMPLEXITY_TEXT_PATH,
         "docs/evidence/quality-gate.txt",
         "docs/evidence/state-space-sweep.csv",
     }
@@ -174,6 +212,36 @@ SWEEP_COLUMNS = (
     "dp_cells_upper_bound",
     "dp_transitions_upper_bound",
 )
+
+COMPLEXITY_CASE_IDS = (
+    "default-visible-ascii-20",
+    "balanced-visible-ascii-24",
+    "skewed-visible-ascii-24",
+    "near-budget-eight-class-32",
+    "arbitrary-precision-one-class-256",
+    "rejected-eight-class-32",
+)
+_COMPLEXITY_POLICIES: dict[str, tuple[int, tuple[int, ...], tuple[int, ...]]] = {
+    "default-visible-ascii-20": (20, (26, 26, 10, 32), (1, 1, 1, 1)),
+    "balanced-visible-ascii-24": (24, (26, 26, 10, 32), (6, 6, 6, 6)),
+    "skewed-visible-ascii-24": (24, (26, 26, 10, 32), (21, 1, 1, 1)),
+    "near-budget-eight-class-32": (32, (1,) * 8, (2,) * 8),
+    "arbitrary-precision-one-class-256": (256, (94,), (256,)),
+    "rejected-eight-class-32": (32, (1,) * 8, (3,) * 8),
+}
+_COMPLEXITY_ACCEPTED_WORK: dict[str, tuple[int, int, int, int, int]] = {
+    "default-visible-ascii-20": (304, 1_212, 20, 320, 1_212),
+    "balanced-visible-ascii-24": (31_213, 124_848, 24, 57_624, 124_848),
+    "skewed-visible-ascii-24": (2_288, 9_148, 24, 4_224, 9_148),
+    "near-budget-eight-class-32": (
+        164_025,
+        1_312_192,
+        32,
+        209_952,
+        1_312_192,
+    ),
+    "arbitrary-precision-one-class-256": (33_153, 33_152, 256, 65_792, 33_152),
+}
 
 _SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 _EMAIL = re.compile(
@@ -960,13 +1028,74 @@ def _validate_capture(value: object) -> dict[str, tuple[int, int]]:
     return viewports
 
 
+def _validate_complexity_envelope(value: object) -> None:
+    envelope = _mapping(value, "evidence.dp_complexity_profile")
+    _exact_keys(
+        envelope,
+        {
+            "accepted_scenarios",
+            "contains_candidate",
+            "counter_contract",
+            "json_source_command",
+            "rejected_before_enumeration",
+            "report_schema_version",
+            "scenario_ids",
+            "text_source_command",
+        },
+        "evidence.dp_complexity_profile",
+    )
+    scenario_ids = _validate_string_list(
+        envelope["scenario_ids"],
+        "evidence.dp_complexity_profile.scenario_ids",
+    )
+    if scenario_ids != list(COMPLEXITY_CASE_IDS):
+        _fail("complexity envelope has the wrong fixed scenario order")
+    if (
+        _integer(
+            envelope["accepted_scenarios"],
+            "evidence.dp_complexity_profile.accepted_scenarios",
+        )
+        != 5
+        or _integer(
+            envelope["rejected_before_enumeration"],
+            "evidence.dp_complexity_profile.rejected_before_enumeration",
+        )
+        != 1
+        or _integer(
+            envelope["report_schema_version"],
+            "evidence.dp_complexity_profile.report_schema_version",
+        )
+        != 1
+    ):
+        _fail("complexity envelope has the wrong scenario cardinality or schema")
+    if _boolean(
+        envelope["contains_candidate"],
+        "evidence.dp_complexity_profile.contains_candidate",
+    ):
+        _fail("complexity envelope must not claim candidate output")
+    if envelope["counter_contract"] != "logical-dp-operations-v1":
+        _fail("complexity envelope has the wrong counter contract")
+    if envelope["json_source_command"] != COMPLEXITY_JSON_COMMAND:
+        _fail("complexity envelope has the wrong JSON source command")
+    if envelope["text_source_command"] != COMPLEXITY_TEXT_COMMAND:
+        _fail("complexity envelope has the wrong text source command")
+
+
 def _validate_evidence_claims(value: object) -> None:
     evidence = _mapping(value, "evidence")
     _exact_keys(
         evidence,
-        {"cli_inspect", "diagrams", "quality_gate", "sweep"},
+        {
+            "cli_inspect",
+            "diagrams",
+            "dp_complexity_profile",
+            "quality_gate",
+            "sweep",
+        },
         "evidence",
     )
+
+    _validate_complexity_envelope(evidence["dp_complexity_profile"])
 
     sweep = _mapping(evidence["sweep"], "evidence.sweep")
     _exact_keys(
@@ -1176,6 +1305,470 @@ def _validate_raw_evidence(textual: dict[str, str]) -> None:
         command_offsets
     ):
         _fail("quality-gate transcript omits ordered command headers")
+
+
+def _integer_list(value: object, label: str, *, minimum: int = 0) -> list[int]:
+    return [
+        _integer(item, f"{label}[{index}]", minimum=minimum)
+        for index, item in enumerate(_sequence(value, label))
+    ]
+
+
+def _validate_profiled_call_map(value: object, label: str) -> dict[str, int]:
+    calls = _mapping(value, label)
+    _exact_keys(calls, {"primitive_calls", "total_calls"}, label)
+    primitive = _integer(calls["primitive_calls"], f"{label}.primitive_calls")
+    total = _integer(calls["total_calls"], f"{label}.total_calls")
+    if primitive > total:
+        _fail(f"{label} has more primitive calls than total calls")
+    return {"primitive_calls": primitive, "total_calls": total}
+
+
+@lru_cache(maxsize=1)
+def _expected_complexity_evidence() -> tuple[dict[str, object], str, str]:
+    try:
+        report = cast(dict[str, object], complexity_profiler.build_profile())
+        json_text = cast(str, complexity_profiler.profile_json(report))
+        text = cast(str, complexity_profiler.profile_text(report))
+    except Exception as error:
+        raise EvidenceValidationError(
+            "the deterministic complexity profiler could not rebuild its report"
+        ) from error
+    transcript = f"$ {COMPLEXITY_TEXT_COMMAND}\n{text}"
+    return report, json_text, transcript
+
+
+def _complexity_transcript(report: dict[str, object]) -> str:
+    try:
+        text = cast(str, complexity_profiler.profile_text(report))
+    except Exception as error:
+        raise EvidenceValidationError(
+            "the deterministic complexity text renderer rejected its report"
+        ) from error
+    return f"$ {COMPLEXITY_TEXT_COMMAND}\n{text}"
+
+
+def _validate_complexity_profile(
+    document: dict[str, object],
+    json_text: str,
+    transcript: str,
+) -> None:
+    """Validate exact logical DP work without accepting performance claims."""
+
+    _exact_keys(
+        document,
+        {
+            "cases",
+            "claim_boundaries",
+            "counter_contract",
+            "profiler",
+            "scenario_set",
+            "schema_version",
+        },
+        "complexity profile",
+    )
+    if _integer(document["schema_version"], "complexity profile.schema_version") != 1:
+        _fail("complexity profile schema version is not supported")
+    if document["scenario_set"] != "deterministic-dp-work-v1":
+        _fail("complexity profile has the wrong fixed scenario set")
+    if document["counter_contract"] != "logical-dp-operations-v1":
+        _fail("complexity profile has the wrong counter contract")
+
+    profiler = _mapping(document["profiler"], "complexity profile.profiler")
+    _exact_keys(
+        profiler,
+        {
+            "engine",
+            "retained_fields",
+            "selected_project_functions",
+            "timing_fields_retained",
+        },
+        "complexity profile.profiler",
+    )
+    if profiler["engine"] != "cProfile":
+        _fail("complexity profile uses an unexpected call-count engine")
+    if _validate_string_list(
+        profiler["selected_project_functions"],
+        "complexity profile.profiler.selected_project_functions",
+    ) != ["PasswordSpace._build_layers", "_consume"]:
+        _fail("complexity profile selects the wrong project functions")
+    if _validate_string_list(
+        profiler["retained_fields"],
+        "complexity profile.profiler.retained_fields",
+    ) != ["primitive_calls", "total_calls"]:
+        _fail("complexity profile retained fields are not call-count only")
+    if _boolean(
+        profiler["timing_fields_retained"],
+        "complexity profile.profiler.timing_fields_retained",
+    ):
+        _fail("complexity profile must discard profiler timing fields")
+
+    boundaries = _mapping(
+        document["claim_boundaries"],
+        "complexity profile.claim_boundaries",
+    )
+    boundary_keys = {
+        "candidate_output_included",
+        "entropy_consumed",
+        "hardware_performance_claimed",
+        "memory_usage_claimed",
+        "wall_clock_timing_included",
+    }
+    _exact_keys(boundaries, boundary_keys, "complexity profile.claim_boundaries")
+    if any(
+        _boolean(boundaries[key], f"complexity profile.claim_boundaries.{key}")
+        for key in boundary_keys
+    ):
+        _fail("complexity profile claim boundaries must all remain false")
+
+    cases = _sequence(document["cases"], "complexity profile.cases")
+    if len(cases) != len(COMPLEXITY_CASE_IDS):
+        _fail("complexity profile must contain exactly six fixed cases")
+    observed_ids: list[str] = []
+    cases_by_id: dict[str, dict[str, object]] = {}
+    for index, raw_case in enumerate(cases):
+        label = f"complexity profile.cases[{index}]"
+        case = _mapping(raw_case, label)
+        case_id = _string(case.get("case_id"), f"{label}.case_id")
+        observed_ids.append(case_id)
+        cases_by_id[case_id] = case
+        if case_id not in _COMPLEXITY_POLICIES:
+            _fail(f"{label} is not in the fixed scenario set")
+
+        accepted = case_id in _COMPLEXITY_ACCEPTED_WORK
+        expected_keys = {
+            "bounds",
+            "case_id",
+            "outcome",
+            "policy",
+            "profiled_calls",
+            "work_counters",
+        }
+        expected_keys |= (
+            {"independent_oracles", "observed"} if accepted else {"rejection"}
+        )
+        _exact_keys(case, expected_keys, label)
+
+        policy = _mapping(case["policy"], f"{label}.policy")
+        _exact_keys(
+            policy,
+            {"class_count", "class_minima", "class_widths", "length"},
+            f"{label}.policy",
+        )
+        length = _integer(policy["length"], f"{label}.policy.length", minimum=1)
+        class_count = _integer(
+            policy["class_count"],
+            f"{label}.policy.class_count",
+            minimum=1,
+        )
+        widths = _integer_list(
+            policy["class_widths"],
+            f"{label}.policy.class_widths",
+            minimum=1,
+        )
+        minima = _integer_list(
+            policy["class_minima"],
+            f"{label}.policy.class_minima",
+        )
+        expected_length, expected_widths, expected_minima = _COMPLEXITY_POLICIES[
+            case_id
+        ]
+        if (
+            length != expected_length
+            or class_count != len(widths)
+            or len(minima) != class_count
+            or tuple(widths) != expected_widths
+            or tuple(minima) != expected_minima
+            or sum(minima) > length
+        ):
+            _fail(f"{label} does not match its fixed public policy")
+
+        bounds = _mapping(case["bounds"], f"{label}.bounds")
+        bound_keys = {
+            "dp_cells_budget",
+            "dp_cells_upper_bound",
+            "dp_transitions_budget",
+            "dp_transitions_upper_bound",
+            "state_vectors_upper_bound_per_layer",
+        }
+        _exact_keys(bounds, bound_keys, f"{label}.bounds")
+        vectors = prod(minimum + 1 for minimum in minima)
+        cells_upper = (length + 1) * vectors
+        transitions_upper = class_count * cells_upper
+        if (
+            _integer(
+                bounds["state_vectors_upper_bound_per_layer"],
+                f"{label}.bounds.state_vectors_upper_bound_per_layer",
+                minimum=1,
+            )
+            != vectors
+            or _integer(
+                bounds["dp_cells_upper_bound"],
+                f"{label}.bounds.dp_cells_upper_bound",
+                minimum=1,
+            )
+            != cells_upper
+            or _integer(
+                bounds["dp_transitions_upper_bound"],
+                f"{label}.bounds.dp_transitions_upper_bound",
+                minimum=1,
+            )
+            != transitions_upper
+            or bounds["dp_cells_budget"] != MAX_DP_CELLS
+            or bounds["dp_transitions_budget"] != MAX_DP_TRANSITIONS
+        ):
+            _fail(f"{label} bounds do not match the production admission contract")
+
+        profiled = _mapping(case["profiled_calls"], f"{label}.profiled_calls")
+        _exact_keys(
+            profiled,
+            {"build_layers", "consume"},
+            f"{label}.profiled_calls",
+        )
+        build_calls = _validate_profiled_call_map(
+            profiled["build_layers"],
+            f"{label}.profiled_calls.build_layers",
+        )
+        consume_calls = _validate_profiled_call_map(
+            profiled["consume"],
+            f"{label}.profiled_calls.consume",
+        )
+        work = _mapping(case["work_counters"], f"{label}.work_counters")
+        _exact_keys(
+            work,
+            {"consume_calls", "product_calls", "product_vectors"},
+            f"{label}.work_counters",
+        )
+        product_calls = _integer(
+            work["product_calls"],
+            f"{label}.work_counters.product_calls",
+        )
+        product_vectors = _integer(
+            work["product_vectors"],
+            f"{label}.work_counters.product_vectors",
+        )
+        observed_consume_calls = _integer(
+            work["consume_calls"],
+            f"{label}.work_counters.consume_calls",
+        )
+
+        if not accepted:
+            if (
+                case["outcome"] != "rejected-before-enumeration"
+                or case["rejection"] != "dynamic-programming-complexity-budget"
+            ):
+                _fail("rejected complexity case has the wrong failure contract")
+            if cells_upper <= MAX_DP_CELLS and transitions_upper <= MAX_DP_TRANSITIONS:
+                _fail("rejected complexity case is below both production budgets")
+            zero_calls = {"primitive_calls": 0, "total_calls": 0}
+            if (
+                build_calls != zero_calls
+                or consume_calls != zero_calls
+                or product_calls != 0
+                or product_vectors != 0
+                or observed_consume_calls != 0
+            ):
+                _fail("rejected complexity case performed forbidden enumeration")
+            continue
+
+        if case["outcome"] != "accepted":
+            _fail(f"{label} unexpectedly records a rejected outcome")
+        if cells_upper > MAX_DP_CELLS or transitions_upper > MAX_DP_TRANSITIONS:
+            _fail(f"{label} was accepted above a production complexity budget")
+        observed = _mapping(case["observed"], f"{label}.observed")
+        _exact_keys(
+            observed,
+            {
+                "layer_occupancy",
+                "occupied_cells",
+                "peak_count_bits",
+                "transitions",
+                "valid_state_space",
+            },
+            f"{label}.observed",
+        )
+        occupancy = _integer_list(
+            observed["layer_occupancy"],
+            f"{label}.observed.layer_occupancy",
+            minimum=1,
+        )
+        occupied = _integer(
+            observed["occupied_cells"],
+            f"{label}.observed.occupied_cells",
+            minimum=1,
+        )
+        transitions = _integer(
+            observed["transitions"],
+            f"{label}.observed.transitions",
+        )
+        peak_bits = _integer(
+            observed["peak_count_bits"],
+            f"{label}.observed.peak_count_bits",
+            minimum=1,
+        )
+        valid = _string(
+            observed["valid_state_space"],
+            f"{label}.observed.valid_state_space",
+        )
+        if re.fullmatch(r"[1-9][0-9]*", valid) is None:
+            _fail(f"{label}.observed.valid_state_space is not canonical decimal")
+        if (
+            len(occupancy) != length + 1
+            or occupancy[0] != 1
+            or occupied != sum(occupancy)
+            or occupied > cells_upper
+            or transitions != class_count * (occupied - 1)
+        ):
+            _fail(f"{label} has inconsistent occupied cell or transition counts")
+        (
+            expected_occupied,
+            expected_transitions,
+            expected_product_calls,
+            expected_vectors,
+            expected_consume,
+        ) = _COMPLEXITY_ACCEPTED_WORK[case_id]
+        if (
+            occupied != expected_occupied
+            or transitions != expected_transitions
+            or product_calls != expected_product_calls
+            or product_vectors != expected_vectors
+            or observed_consume_calls != expected_consume
+        ):
+            _fail(f"{label} logical work counters changed from the fixed study")
+        if (
+            build_calls != {"primitive_calls": 1, "total_calls": 1}
+            or consume_calls
+            != {"primitive_calls": transitions, "total_calls": transitions}
+            or product_calls != length
+            or product_vectors != length * vectors
+            or observed_consume_calls != transitions
+        ):
+            _fail(f"{label} profiler counters do not match the loop or call contract")
+        oracles = _mapping(
+            case["independent_oracles"],
+            f"{label}.independent_oracles",
+        )
+        _exact_keys(
+            oracles,
+            {"occupied_cells", "transitions", "valid_state_space"},
+            f"{label}.independent_oracles",
+        )
+        oracle_occupied = _integer(
+            oracles["occupied_cells"],
+            f"{label}.independent_oracles.occupied_cells",
+            minimum=1,
+        )
+        oracle_transitions = _integer(
+            oracles["transitions"],
+            f"{label}.independent_oracles.transitions",
+        )
+        oracle_valid = _string(
+            oracles["valid_state_space"],
+            f"{label}.independent_oracles.valid_state_space",
+        )
+        if (
+            oracle_occupied != occupied
+            or oracle_transitions != transitions
+            or oracle_valid != valid
+        ):
+            _fail(f"{label} observed work disagrees with an independent oracle")
+        del peak_bits
+
+    if observed_ids != list(COMPLEXITY_CASE_IDS) or len(cases_by_id) != len(cases):
+        _fail("complexity profile cases are duplicated or out of fixed order")
+
+    balanced = cases_by_id["balanced-visible-ascii-24"]
+    skewed = cases_by_id["skewed-visible-ascii-24"]
+    balanced_policy = _mapping(balanced["policy"], "balanced policy")
+    skewed_policy = _mapping(skewed["policy"], "skewed policy")
+    balanced_observed = _mapping(balanced["observed"], "balanced observation")
+    skewed_observed = _mapping(skewed["observed"], "skewed observation")
+    if (
+        balanced_policy["length"] != skewed_policy["length"]
+        or balanced_policy["class_widths"] != skewed_policy["class_widths"]
+        or sum(cast(list[int], balanced_policy["class_minima"]))
+        != sum(cast(list[int], skewed_policy["class_minima"]))
+        or _integer(balanced_observed["occupied_cells"], "balanced cells")
+        <= _integer(skewed_observed["occupied_cells"], "skewed cells")
+        or _integer(balanced_observed["transitions"], "balanced transitions")
+        <= _integer(skewed_observed["transitions"], "skewed transitions")
+    ):
+        _fail("complexity profile lost its balanced-versus-skewed differential")
+
+    _validate_safe_text(json_text, "complexity profile JSON")
+    _validate_safe_text(transcript, "complexity profile transcript")
+    if (
+        not transcript.endswith(
+            "Safety: no entropy consumed and no password candidate "
+            "constructed or emitted.\n"
+        )
+        or "no elapsed-time, RSS, hardware, or speed claim" not in transcript
+    ):
+        _fail("complexity transcript omits its privacy or claim boundaries")
+
+    expected_report, expected_json, expected_transcript = (
+        _expected_complexity_evidence()
+    )
+    if document != expected_report or json_text != expected_json:
+        _fail("complexity profile is stale against a fresh deterministic rebuild")
+    if transcript != expected_transcript:
+        _fail("complexity transcript is not the exact real text representation")
+
+
+def _validate_complexity_renderings(
+    root: Path,
+    report: dict[str, object],
+    transcript: str,
+) -> None:
+    """Require and byte-compare every pure complexity renderer."""
+
+    try:
+        rendering = _load_local_module("evidence_rendering")
+    except (ImportError, OSError, RuntimeError) as error:
+        raise EvidenceValidationError(
+            "complexity renderers could not be loaded"
+        ) from error
+    for renderer_name, relative in (
+        ("render_dp_layer_occupancy_svg", "docs/assets/dp-layer-occupancy.svg"),
+        ("render_dp_work_counts_svg", "docs/assets/dp-work-counts.svg"),
+    ):
+        renderer = getattr(rendering, renderer_name, None)
+        if not callable(renderer):
+            _fail(f"required pure complexity renderer is missing: {renderer_name}")
+        try:
+            rendered = renderer(report)
+        except Exception as error:
+            raise EvidenceValidationError(
+                f"pure complexity renderer failed: {renderer_name}"
+            ) from error
+        if type(rendered) is str:
+            expected = rendered.encode("utf-8")
+        elif type(rendered) is bytes:
+            expected = rendered
+        else:
+            _fail(
+                f"pure complexity renderer returned an invalid value: {renderer_name}"
+            )
+        actual = _read_bounded(root / relative, relative)
+        if actual != expected:
+            _fail(f"complexity visual is stale against its pure renderer: {relative}")
+
+    png_renderer = getattr(rendering, "render_terminal_png_bytes", None)
+    if not callable(png_renderer):
+        _fail("required pure complexity PNG renderer is missing")
+    try:
+        rendered_png = png_renderer(
+            transcript=transcript,
+            title=COMPLEXITY_PNG_TITLE,
+        )
+    except Exception as error:
+        raise EvidenceValidationError("pure complexity PNG renderer failed") from error
+    if type(rendered_png) is not bytes:
+        _fail("pure complexity PNG renderer returned an invalid value")
+    png_relative = "docs/assets/dp-complexity-cli.png"
+    actual_png = _read_bounded(root / png_relative, png_relative)
+    if actual_png != rendered_png:
+        _fail(f"complexity visual is stale against its pure renderer: {png_relative}")
 
 
 def _distribution_input_digest(root: Path) -> str:
@@ -1834,8 +2427,8 @@ def validate_evidence(root: Path) -> None:
         },
         "manifest",
     )
-    if document["schema_version"] != 1:
-        _fail("manifest.schema_version must be 1")
+    if document["schema_version"] != 2:
+        _fail("manifest.schema_version must be 2")
     if document["generator"] != GENERATOR_PATH:
         _fail("manifest.generator is incorrect")
     _validate_safe_text(manifest_text, "manifest")
@@ -1846,6 +2439,22 @@ def validate_evidence(root: Path) -> None:
     textual = _validate_artifacts(repository, document["artifacts"], viewports)
     for artifact, text in textual.items():
         _validate_safe_text(text, artifact)
+    complexity_document, complexity_text = _load_json(
+        repository / COMPLEXITY_JSON_PATH,
+        label="complexity profile",
+    )
+    if textual[COMPLEXITY_JSON_PATH] != complexity_text:
+        _fail("complexity profile changed between bounded reads")
+    _validate_complexity_profile(
+        complexity_document,
+        complexity_text,
+        textual[COMPLEXITY_TEXT_PATH],
+    )
+    _validate_complexity_renderings(
+        repository,
+        complexity_document,
+        textual[COMPLEXITY_TEXT_PATH],
+    )
     distribution_document, distribution_text = _load_json(
         repository / "docs/evidence/distribution-attestation.json",
         label="distribution attestation",

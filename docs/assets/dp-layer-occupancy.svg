@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1320" viewBox="0 0 1800 1320" role="img" aria-labelledby="title description">
+  <title id="title">Exact dynamic-programming layer occupancy</title>
+  <desc id="description">Five panels plot exact retained deficit-vector counts by remaining position. A sixth panel records a complexity-budget rejection and deliberately contains no curve.</desc>
+  <defs>
+    <marker id="arrow-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#63e6d2"/>
+    </marker>
+    <marker id="arrow-gold" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#f4c95d"/>
+    </marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity=".28"/>
+    </filter>
+    <style>
+      .title { fill: #edf5f1; font: 700 42px system-ui, sans-serif; letter-spacing: -1px; }
+      .subtitle { fill: #9fb4ad; font: 400 20px system-ui, sans-serif; }
+      .lane { fill: #63e6d2; font: 700 15px ui-monospace, monospace; letter-spacing: 2px; }
+      .node-title { fill: #edf5f1; font: 700 22px system-ui, sans-serif; }
+      .node-detail { fill: #9fb4ad; font: 400 16px system-ui, sans-serif; }
+      .node-code { fill: #f4c95d; font: 600 15px ui-monospace, monospace; }
+      .step { fill: #0a1014; font: 800 15px ui-monospace, monospace; }
+      .caption { fill: #9fb4ad; font: 400 16px system-ui, sans-serif; }
+    </style>
+  </defs>
+  <rect width="1800" height="1320" rx="28" fill="#0a1014"/>
+  <path d="M0 0 H1800 V1320 H0 Z" fill="none" stroke="#36505a" stroke-width="2"/>
+  <text x="70" y="78" class="title">Sparse DP occupancy, layer by exact layer</text>
+  <text x="70" y="118" class="subtitle">Every accepted curve is drawn directly from the profiled layer_occupancy array; the rejected policy has no invented series.</text>
+  <rect x="70" y="150" width="1660" height="50" rx="16" fill="#17262d" stroke="#36505a"/>
+  <text x="900" y="182" text-anchor="middle" class="caption">Logical state counts only · no elapsed time · no RSS · no hardware performance claim</text>
+  <g id="dp-layer-default-visible-ascii-20" role="group" aria-label="Default visible ASCII; exact occupancy for layers zero through 20; total occupied cells 304; peak layer occupancy 16; transition calls 1212">
+    <rect x="55" y="230" width="820" height="300" rx="18" fill="#111c21" stroke="#36505a"/>
+    <text x="83" y="272" class="node-title">Default visible ASCII</text>
+    <text x="83" y="302" class="node-detail">L=20 · minima 1 / 1 / 1 / 1 · peak 16 states</text>
+    <text x="103" y="338" class="node-code">states 16</text>
+    <line x1="103" y1="350" x2="827" y2="350" stroke="#36505a" stroke-dasharray="6 7"/>
+    <line x1="103" y1="450" x2="827" y2="450" stroke="#36505a"/>
+    <polyline data-series="layer-occupancy" points="103,450 139,424 175,384 211,357 247,350 284,350 320,350 356,350 392,350 428,350 465,350 501,350 537,350 573,350 609,350 646,350 682,350 718,350 754,350 790,350 827,350" fill="none" stroke="#63e6d2" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="103" cy="450" r="5" fill="#f4c95d"/>
+    <circle cx="827" cy="350" r="5" fill="#f4c95d"/>
+    <text x="103" y="475" class="caption">remaining 0 · states 1</text>
+    <text x="827" y="475" text-anchor="end" class="caption">remaining 20 · states 16</text>
+    <text x="83" y="502" class="node-code">occupied 304 · product 20 calls / 320 vectors · consume 1,212</text>
+  </g>  <g id="dp-layer-balanced-visible-ascii-24" role="group" aria-label="Balanced strict minima; exact occupancy for layers zero through 24; total occupied cells 31213; peak layer occupancy 2401; transition calls 124848">
+    <rect x="925" y="230" width="820" height="300" rx="18" fill="#111c21" stroke="#36505a"/>
+    <text x="953" y="272" class="node-title">Balanced strict minima</text>
+    <text x="953" y="302" class="node-detail">L=24 · minima 6 / 6 / 6 / 6 · peak 2,401 states</text>
+    <text x="973" y="338" class="node-code">states 2,401</text>
+    <line x1="973" y1="350" x2="1697" y2="350" stroke="#36505a" stroke-dasharray="6 7"/>
+    <line x1="973" y1="450" x2="1697" y2="450" stroke="#36505a"/>
+    <polyline data-series="layer-occupancy" points="973,450 1003,450 1033,450 1063,449 1093,448 1123,445 1154,442 1184,437 1214,431 1244,423 1274,415 1304,405 1335,396 1365,386 1395,378 1425,370 1455,364 1485,359 1516,356 1546,353 1576,352 1606,351 1636,351 1666,351 1697,350" fill="none" stroke="#63e6d2" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="973" cy="450" r="5" fill="#f4c95d"/>
+    <circle cx="1697" cy="350" r="5" fill="#f4c95d"/>
+    <text x="973" y="475" class="caption">remaining 0 · states 1</text>
+    <text x="1697" y="475" text-anchor="end" class="caption">remaining 24 · states 2,401</text>
+    <text x="953" y="502" class="node-code">occupied 31,213 · product 24 calls / 57,624 vectors · consume 124,848</text>
+  </g>  <g id="dp-layer-skewed-visible-ascii-24" role="group" aria-label="Skewed strict minima; exact occupancy for layers zero through 24; total occupied cells 2288; peak layer occupancy 176; transition calls 9148">
+    <rect x="55" y="570" width="820" height="300" rx="18" fill="#111c21" stroke="#36505a"/>
+    <text x="83" y="612" class="node-title">Skewed strict minima</text>
+    <text x="83" y="642" class="node-detail">L=24 · minima 21 / 1 / 1 / 1 · peak 176 states</text>
+    <text x="103" y="678" class="node-code">states 176</text>
+    <line x1="103" y1="690" x2="827" y2="690" stroke="#36505a" stroke-dasharray="6 7"/>
+    <line x1="103" y1="790" x2="827" y2="790" stroke="#36505a"/>
+    <polyline data-series="layer-occupancy" points="103,790 133,788 163,784 193,780 223,775 253,770 284,766 314,761 344,757 374,752 404,748 434,743 465,738 495,734 525,729 555,725 585,720 615,716 646,711 676,706 706,702 736,697 766,693 796,691 827,690" fill="none" stroke="#63e6d2" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="103" cy="790" r="5" fill="#f4c95d"/>
+    <circle cx="827" cy="690" r="5" fill="#f4c95d"/>
+    <text x="103" y="815" class="caption">remaining 0 · states 1</text>
+    <text x="827" y="815" text-anchor="end" class="caption">remaining 24 · states 176</text>
+    <text x="83" y="842" class="node-code">occupied 2,288 · product 24 calls / 4,224 vectors · consume 9,148</text>
+  </g>  <g id="dp-layer-near-budget-eight-class-32" role="group" aria-label="Eight-class budget edge; exact occupancy for layers zero through 32; total occupied cells 164025; peak layer occupancy 6561; transition calls 1312192">
+    <rect x="925" y="570" width="820" height="300" rx="18" fill="#111c21" stroke="#36505a"/>
+    <text x="953" y="612" class="node-title">Eight-class budget edge</text>
+    <text x="953" y="642" class="node-detail">L=32 · minima 2 / 2 / 2 / 2 / 2 / 2 / 2 / 2 · peak 6,561 states</text>
+    <text x="973" y="678" class="node-code">states 6,561</text>
+    <line x1="973" y1="690" x2="1697" y2="690" stroke="#36505a" stroke-dasharray="6 7"/>
+    <line x1="973" y1="790" x2="1697" y2="790" stroke="#36505a"/>
+    <polyline data-series="layer-occupancy" points="973,790 995,790 1018,790 1040,788 1063,784 1086,776 1108,764 1131,749 1154,732 1176,717 1199,705 1221,697 1244,693 1267,691 1289,691 1312,691 1335,690 1357,690 1380,690 1402,690 1425,690 1448,690 1470,690 1493,690 1516,690 1538,690 1561,690 1583,690 1606,690 1629,690 1651,690 1674,690 1697,690" fill="none" stroke="#63e6d2" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="973" cy="790" r="5" fill="#f4c95d"/>
+    <circle cx="1697" cy="690" r="5" fill="#f4c95d"/>
+    <text x="973" y="815" class="caption">remaining 0 · states 1</text>
+    <text x="1697" y="815" text-anchor="end" class="caption">remaining 32 · states 6,561</text>
+    <text x="953" y="842" class="node-code">occupied 164,025 · product 32 calls / 209,952 vectors · consume 1,312,192</text>
+  </g>  <g id="dp-layer-arbitrary-precision-one-class-256" role="group" aria-label="Arbitrary-precision depth; exact occupancy for layers zero through 256; total occupied cells 33153; peak layer occupancy 257; transition calls 33152">
+    <rect x="55" y="910" width="820" height="300" rx="18" fill="#111c21" stroke="#36505a"/>
+    <text x="83" y="952" class="node-title">Arbitrary-precision depth</text>
+    <text x="83" y="982" class="node-detail">L=256 · minima 256 · peak 257 states</text>
+    <text x="103" y="1018" class="node-code">states 257</text>
+    <line x1="103" y1="1030" x2="827" y2="1030" stroke="#36505a" stroke-dasharray="6 7"/>
+    <line x1="103" y1="1130" x2="827" y2="1130" stroke="#36505a"/>
+    <polyline data-series="layer-occupancy" points="103,1130 105,1130 108,1130 111,1129 114,1129 117,1129 119,1128 122,1128 125,1127 128,1127 131,1127 134,1126 136,1126 139,1125 142,1125 145,1125 148,1124 151,1124 153,1123 156,1123 159,1123 162,1122 165,1122 168,1122 170,1121 173,1121 176,1120 179,1120 182,1120 185,1119 187,1119 190,1118 193,1118 196,1118 199,1117 201,1117 204,1116 207,1116 210,1116 213,1115 216,1115 218,1114 221,1114 224,1114 227,1113 230,1113 233,1113 235,1112 238,1112 241,1111 244,1111 247,1111 250,1110 252,1110 255,1109 258,1109 261,1109 264,1108 267,1108 269,1107 272,1107 275,1107 278,1106 281,1106 284,1105 286,1105 289,1105 292,1104 295,1104 298,1104 300,1103 303,1103 306,1102 309,1102 312,1102 315,1101 317,1101 320,1100 323,1100 326,1100 329,1099 332,1099 334,1098 337,1098 340,1098 343,1097 346,1097 349,1097 351,1096 354,1096 357,1095 360,1095 363,1095 366,1094 368,1094 371,1093 374,1093 377,1093 380,1092 382,1092 385,1091 388,1091 391,1091 394,1090 397,1090 399,1089 402,1089 405,1089 408,1088 411,1088 414,1088 416,1087 419,1087 422,1086 425,1086 428,1086 431,1085 433,1085 436,1084 439,1084 442,1084 445,1083 448,1083 450,1082 453,1082 456,1082 459,1081 462,1081 465,1080 467,1080 470,1080 473,1079 476,1079 479,1079 481,1078 484,1078 487,1077 490,1077 493,1077 496,1076 498,1076 501,1075 504,1075 507,1075 510,1074 513,1074 515,1073 518,1073 521,1073 524,1072 527,1072 530,1072 532,1071 535,1071 538,1070 541,1070 544,1070 547,1069 549,1069 552,1068 555,1068 558,1068 561,1067 563,1067 566,1066 569,1066 572,1066 575,1065 578,1065 580,1064 583,1064 586,1064 589,1063 592,1063 595,1063 597,1062 600,1062 603,1061 606,1061 609,1061 612,1060 614,1060 617,1059 620,1059 623,1059 626,1058 629,1058 631,1057 634,1057 637,1057 640,1056 643,1056 646,1055 648,1055 651,1055 654,1054 657,1054 660,1054 662,1053 665,1053 668,1052 671,1052 674,1052 677,1051 679,1051 682,1050 685,1050 688,1050 691,1049 694,1049 696,1048 699,1048 702,1048 705,1047 708,1047 711,1047 713,1046 716,1046 719,1045 722,1045 725,1045 728,1044 730,1044 733,1043 736,1043 739,1043 742,1042 744,1042 747,1041 750,1041 753,1041 756,1040 759,1040 761,1039 764,1039 767,1039 770,1038 773,1038 776,1038 778,1037 781,1037 784,1036 787,1036 790,1036 793,1035 795,1035 798,1034 801,1034 804,1034 807,1033 810,1033 812,1032 815,1032 818,1032 821,1031 824,1031 827,1030" fill="none" stroke="#63e6d2" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="103" cy="1130" r="5" fill="#f4c95d"/>
+    <circle cx="827" cy="1030" r="5" fill="#f4c95d"/>
+    <text x="103" y="1155" class="caption">remaining 0 · states 1</text>
+    <text x="827" y="1155" text-anchor="end" class="caption">remaining 256 · states 257</text>
+    <text x="83" y="1182" class="node-code">occupied 33,153 · product 256 calls / 65,792 vectors · consume 33,152</text>
+  </g>  <g id="dp-layer-rejected-eight-class-32" role="group" aria-label="Fail-fast budget guard; rejected before enumeration; no layer occupancy curve; product calls zero; consume calls zero">
+    <rect x="925" y="910" width="820" height="300" rx="18" fill="#111c21" stroke="#f4c95d" stroke-width="2"/>
+    <text x="953" y="952" class="node-title">Fail-fast budget guard</text>
+    <text x="953" y="982" class="node-detail">L=32 · minima 3 / 3 / 3 / 3 / 3 / 3 / 3 / 3</text>
+    <rect x="973" y="1018" width="724" height="102" rx="14" fill="#17262d" stroke="#f4c95d" stroke-width="2" stroke-dasharray="10 8"/>
+    <text x="1335" y="1058" text-anchor="middle" class="node-title">NO CURVE · PRECHECK REJECTED</text>
+    <text x="1335" y="1091" text-anchor="middle" class="node-detail">cell bound 2,162,688 / 250,000 · transition bound 17,301,504 / 2,000,000</text>
+    <text x="953" y="1162" class="node-code">product 0 calls · 0 vectors · consume 0</text>
+    <text x="953" y="1190" class="caption">No layer table exists, so no occupancy series is drawn.</text>
+  </g>
+  <text x="70" y="1280" class="caption">Horizontal axis: remaining positions. Vertical axis: retained bounded-deficit vectors on an exact linear scale within each panel.</text>
+  <text x="1730" y="1280" text-anchor="end" class="node-code">5 observed curves · 1 fail-fast boundary</text>
+</svg>

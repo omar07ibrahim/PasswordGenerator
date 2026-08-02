@@ -16,7 +16,11 @@ from password_policy_lab.profiles import visible_ascii_policy
 
 
 class _Checker(Protocol):
+    COMPLEXITY_CASE_IDS: tuple[str, ...]
+    COMPLEXITY_JSON_PATH: str
+    COMPLEXITY_TEXT_PATH: str
     EvidenceValidationError: type[ValueError]
+    EXPECTED_ARTIFACTS: frozenset[str]
     MANIFEST_PATH: str
     SWEEP_COLUMNS: tuple[str, ...]
 
@@ -44,7 +48,34 @@ class _Checker(Protocol):
 
     def _expected_inspection(self, report: StateSpaceInspection) -> str: ...
 
-    def _load_json(self, path: Path) -> tuple[dict[str, object], str]: ...
+    def _load_json(
+        self,
+        path: Path,
+        *,
+        label: str = "manifest",
+    ) -> tuple[dict[str, object], str]: ...
+
+    def _expected_complexity_evidence(
+        self,
+    ) -> tuple[dict[str, object], str, str]: ...
+
+    def _complexity_transcript(self, report: dict[str, object]) -> str: ...
+
+    def _validate_complexity_envelope(self, value: object) -> None: ...
+
+    def _validate_complexity_profile(
+        self,
+        document: dict[str, object],
+        json_text: str,
+        transcript: str,
+    ) -> None: ...
+
+    def _validate_complexity_renderings(
+        self,
+        root: Path,
+        report: dict[str, object],
+        transcript: str,
+    ) -> None: ...
 
     def _distribution_input_digest(self, root: Path) -> str: ...
 
@@ -267,6 +298,149 @@ def test_manifest_loader_rejects_duplicates_and_noncanonical_json(
         check_evidence._load_json(path)
 
 
+def _canonical_json(document: dict[str, object]) -> str:
+    return json.dumps(document, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+
+
+def test_complexity_profile_rebuild_has_exact_schema_and_invariants() -> None:
+    report, json_text, transcript = check_evidence._expected_complexity_evidence()
+
+    check_evidence._validate_complexity_profile(report, json_text, transcript)
+
+    cases = cast(list[dict[str, object]], report["cases"])
+    assert [case["case_id"] for case in cases] == list(
+        check_evidence.COMPLEXITY_CASE_IDS
+    )
+    assert len(cases) == 6
+    assert sum(case["outcome"] == "accepted" for case in cases) == 5
+    assert cases[-1]["outcome"] == "rejected-before-enumeration"
+
+
+def test_complexity_envelope_is_exact_and_candidate_free() -> None:
+    envelope: dict[str, object] = {
+        "accepted_scenarios": 5,
+        "contains_candidate": False,
+        "counter_contract": "logical-dp-operations-v1",
+        "json_source_command": (
+            "PYTHONPATH=src python scripts/profile_complexity.py --format json"
+        ),
+        "rejected_before_enumeration": 1,
+        "report_schema_version": 1,
+        "scenario_ids": list(check_evidence.COMPLEXITY_CASE_IDS),
+        "text_source_command": (
+            "PYTHONPATH=src python scripts/profile_complexity.py --format text"
+        ),
+    }
+
+    check_evidence._validate_complexity_envelope(envelope)
+
+    stale = copy.deepcopy(envelope)
+    cast(list[str], stale["scenario_ids"]).reverse()
+    with pytest.raises(
+        check_evidence.EvidenceValidationError,
+        match="fixed scenario order",
+    ):
+        check_evidence._validate_complexity_envelope(stale)
+
+
+def test_complexity_profile_rejects_observed_oracle_drift() -> None:
+    expected, _, _ = check_evidence._expected_complexity_evidence()
+    report = copy.deepcopy(expected)
+    first = cast(list[dict[str, object]], report["cases"])[0]
+    observed = cast(dict[str, object], first["observed"])
+    observed["occupied_cells"] = cast(int, observed["occupied_cells"]) + 1
+
+    with pytest.raises(
+        check_evidence.EvidenceValidationError,
+        match="inconsistent occupied cell",
+    ):
+        check_evidence._validate_complexity_profile(
+            report,
+            _canonical_json(report),
+            check_evidence._complexity_transcript(report),
+        )
+
+
+def test_complexity_profile_rejects_work_after_budget_failure() -> None:
+    expected, _, _ = check_evidence._expected_complexity_evidence()
+    report = copy.deepcopy(expected)
+    rejected = cast(list[dict[str, object]], report["cases"])[-1]
+    work = cast(dict[str, object], rejected["work_counters"])
+    work["product_vectors"] = 1
+
+    with pytest.raises(
+        check_evidence.EvidenceValidationError,
+        match="forbidden enumeration",
+    ):
+        check_evidence._validate_complexity_profile(
+            report,
+            _canonical_json(report),
+            check_evidence._complexity_transcript(report),
+        )
+
+
+def test_complexity_profile_rejects_performance_overclaim_or_extra_metric() -> None:
+    expected, _, _ = check_evidence._expected_complexity_evidence()
+    overclaim = copy.deepcopy(expected)
+    boundaries = cast(dict[str, object], overclaim["claim_boundaries"])
+    boundaries["hardware_performance_claimed"] = True
+    with pytest.raises(
+        check_evidence.EvidenceValidationError,
+        match="claim boundaries",
+    ):
+        check_evidence._validate_complexity_profile(
+            overclaim,
+            _canonical_json(overclaim),
+            check_evidence._complexity_transcript(overclaim),
+        )
+
+    extra_metric = copy.deepcopy(expected)
+    extra_metric["elapsed_seconds"] = 0
+    with pytest.raises(
+        check_evidence.EvidenceValidationError,
+        match="unexpected schema",
+    ):
+        check_evidence._validate_complexity_profile(
+            extra_metric,
+            _canonical_json(extra_metric),
+            check_evidence._complexity_transcript(extra_metric),
+        )
+
+
+def test_complexity_artifacts_are_part_of_the_exact_readme_inventory() -> None:
+    assert {
+        "docs/assets/dp-complexity-cli.png",
+        "docs/assets/dp-layer-occupancy.svg",
+        "docs/assets/dp-work-counts.svg",
+        check_evidence.COMPLEXITY_JSON_PATH,
+        check_evidence.COMPLEXITY_TEXT_PATH,
+    }.issubset(check_evidence.EXPECTED_ARTIFACTS)
+
+
+def test_complexity_renderings_reject_a_mutated_png(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[1]
+    report, _, transcript = check_evidence._expected_complexity_evidence()
+    relatives = (
+        "docs/assets/dp-complexity-cli.png",
+        "docs/assets/dp-layer-occupancy.svg",
+        "docs/assets/dp-work-counts.svg",
+    )
+    for relative in relatives:
+        destination = tmp_path / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes((root / relative).read_bytes())
+
+    check_evidence._validate_complexity_renderings(tmp_path, report, transcript)
+    png = tmp_path / "docs/assets/dp-complexity-cli.png"
+    png.write_bytes(png.read_bytes() + b"mutated")
+
+    with pytest.raises(
+        check_evidence.EvidenceValidationError,
+        match="stale against its pure renderer",
+    ):
+        check_evidence._validate_complexity_renderings(tmp_path, report, transcript)
+
+
 def test_distribution_attestation_is_source_bound_and_rejects_overclaim() -> None:
     root = Path(__file__).resolve().parents[1]
     path = root / "docs/evidence/distribution-attestation.json"
@@ -382,11 +556,8 @@ def test_readme_validation_is_robust_when_readme_is_absent(tmp_path: Path) -> No
     check_evidence._validate_readme(tmp_path)
 
 
-def test_checked_in_evidence_bundle_is_valid_when_generated() -> None:
+def test_checked_in_evidence_bundle_is_valid() -> None:
     root = Path(__file__).resolve().parents[1]
-    if not (root / check_evidence.MANIFEST_PATH).exists():
-        pytest.skip("evidence generator has not populated the bundle yet")
-
     check_evidence.validate_evidence(root)
 
 

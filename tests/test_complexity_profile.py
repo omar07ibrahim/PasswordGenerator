@@ -147,11 +147,20 @@ def test_rejected_profile_never_enters_product_or_consume(
     assert case["outcome"] == "rejected-before-enumeration"
 
 
-def test_profile_never_consumes_entropy(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_profile_never_uses_candidate_or_entropy_paths(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     def fail_entropy(upper_bound: int) -> int:
         raise AssertionError(f"entropy must not be consumed: {upper_bound}")
 
+    def fail_candidate(*values: object, **named: object) -> None:
+        raise AssertionError(
+            f"candidate path must not run: {len(values)} positional, {len(named)} named"
+        )
+
     monkeypatch.setattr(secrets, "randbelow", fail_entropy)
+    for method in ("rank", "unrank", "sample_uniform"):
+        monkeypatch.setattr(PasswordSpace, method, fail_candidate)
 
     report = profiler.build_profile()
 
@@ -177,6 +186,7 @@ def test_serializations_are_canonical_stable_and_candidate_free() -> None:
     assert "timing discarded" in text
     assert "no elapsed-time, RSS, hardware, or speed claim" in text
     assert "no password candidate constructed or emitted" in text
+    assert "\N{EM DASH}" not in text
     combined = first_json + csv_text + text
     assert "/home/" not in combined
     assert "generated_password" not in combined
