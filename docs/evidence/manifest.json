@@ -137,11 +137,11 @@
         "real Waitress GET response",
         "390 pixel viewport without horizontal overflow"
       ],
-      "bytes": 60475,
+      "bytes": 60693,
       "height": 844,
       "media_type": "image/png",
       "path": "docs/assets/web-home-mobile.png",
-      "sha256": "29bd5ea9354ea7c48f0d57b4a1eb012a2503c37da38f5a5da0078e2836703a96",
+      "sha256": "d49f0b67f0ee682077674effd4ba09bcf1230b78b0c98016f563bb14fcef9310",
       "width": 390
     },
     {
@@ -149,11 +149,11 @@
         "real Waitress GET response",
         "exact policy details expanded"
       ],
-      "bytes": 474461,
-      "height": 2417,
+      "bytes": 470660,
+      "height": 2418,
       "media_type": "image/png",
       "path": "docs/assets/web-home.png",
-      "sha256": "3043a36c8fe548a2ff9da4bb3a814988b263f021e8f97c00485ff7aba939843d",
+      "sha256": "7e161bce87a67ee03684d097eefb2214b30a76722c9dcc7c5934966429a36506",
       "width": 1440
     },
     {
@@ -161,11 +161,11 @@
         "real Waitress POST response",
         "invalid length rejected with HTTP 400 before sampling"
       ],
-      "bytes": 405760,
-      "height": 1811,
+      "bytes": 410178,
+      "height": 1813,
       "media_type": "image/png",
       "path": "docs/assets/web-invalid-length.png",
-      "sha256": "dda0d85e019ccd4799acd9417a599993df983ff1efe18c76a9b3bcb655fe08d7",
+      "sha256": "9966d6cd501306954fdad8660ac8162b5cc40020f2a346b4bb6ac2289fe06c02",
       "width": 1440
     },
     {
@@ -175,12 +175,12 @@
         "plays once with no flashing sequence",
         "decoded frames preserve the complete browser viewport"
       ],
-      "bytes": 227247,
+      "bytes": 226898,
       "frames": 3,
       "height": 900,
       "media_type": "image/gif",
       "path": "docs/assets/web-validation-demo.gif",
-      "sha256": "6274e9dde0f3accc06b28f411f7cd9353877dced023ac8d8f4941702b20e4314",
+      "sha256": "d23a93a02ea3ead0ffaf6f70e7b2b11f0d85aca758ea693c6015e417e3a19831",
       "width": 1080
     },
     {
@@ -259,11 +259,11 @@
         "vertical frame order GET 200 -> input 7 -> POST 400",
         "three 1080 by 900 frames without gutters or captions"
       ],
-      "bytes": 354937,
+      "bytes": 353316,
       "height": 2700,
       "media_type": "image/png",
       "path": "docs/evidence/web-validation-reference.png",
-      "sha256": "39a3768f42ca9a83c542fc391a202268aec27c4243b6bbb672ec5c02390a53a0",
+      "sha256": "48d36965f54beb1c37ddfc1d5f1115ea176e7ad4b9ca3ebf67425a3c74eb6cf1",
       "width": 1080
     }
   ],
