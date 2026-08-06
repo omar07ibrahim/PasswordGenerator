@@ -254,14 +254,14 @@ The capture contract waits for fonts and settled layout, preserves the declared
 viewport during full-page screenshots, and pins Chromium to one raster thread.
 That removes subpixel shadow races without replacing the real server-rendered
 interface with a mockup; the exact launch argument is recorded in the manifest.
-temporary files under this repository. On a minimal Linux image, Chromium's OS
-runtime libraries still need to be supplied by that environment; the target
-never invokes a privileged system-package install.
 
-The capture contract waits for fonts and settled layout, preserves the declared
-viewport during full-page screenshots, and pins Chromium to one raster thread.
-That removes subpixel shadow races without replacing the real server-rendered
-interface with a mockup; the exact launch argument is recorded in the manifest.
+The byte-exact browser baseline is canonical only on the GitHub-hosted Ubuntu
+24.04 job and the pinned Python, Playwright, and Chromium stack in the
+[verify workflow](.github/workflows/verify.yml). System fonts and renderer
+packages are not vendored, so another Linux image can satisfy every semantic
+assertion while producing different raster bytes. CI treats such drift as a
+review event and preserves only an allowlisted capture that already passed
+evidence validation.
 
 ![Real project quality gate](docs/assets/quality-gate.png)
 
