@@ -254,6 +254,14 @@ The capture contract waits for fonts and settled layout, preserves the declared
 viewport during full-page screenshots, and pins Chromium to one raster thread.
 That removes subpixel shadow races without replacing the real server-rendered
 interface with a mockup; the exact launch argument is recorded in the manifest.
+temporary files under this repository. On a minimal Linux image, Chromium's OS
+runtime libraries still need to be supplied by that environment; the target
+never invokes a privileged system-package install.
+
+The capture contract waits for fonts and settled layout, preserves the declared
+viewport during full-page screenshots, and pins Chromium to one raster thread.
+That removes subpixel shadow races without replacing the real server-rendered
+interface with a mockup; the exact launch argument is recorded in the manifest.
 
 ![Real project quality gate](docs/assets/quality-gate.png)
 

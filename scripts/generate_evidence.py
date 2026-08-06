@@ -1114,6 +1114,7 @@ def _write_quality_evidence(transcript: str) -> None:
 
 def _source_paths() -> list[Path]:
     paths = [
+        ROOT / ".github/workflows/verify.yml",
         ROOT / "MANIFEST.in",
         ROOT / "Makefile",
         ROOT / "PACKAGE.md",

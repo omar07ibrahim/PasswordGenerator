@@ -157,17 +157,36 @@ jobs:
         run: make PYTHON=python evidence-browser
   
       - name: Recapture every raw and visual artifact
+        id: recapture
         run: |
           make PYTHON=python evidence
           make PYTHON=python evidence-check
   
       - name: Require byte-identical evidence and a clean checkout
+        id: byte_check
         run: |
           git diff --exit-code -- .
           test -z "$(git status --short --untracked-files=all)"
   
+      - name: Verify browser drift is reviewable
+        id: drift_inventory
+        if: ${{ always() && steps.recapture.outcome == 'success' && steps.byte_check.outcome == 'failure' }}
+        run: |
+          actual="$(git diff --name-only -- | LC_ALL=C sort)"
+          expected="$(
+            printf "%s\n" \
+              "docs/assets/web-home-mobile.png" \
+              "docs/assets/web-home.png" \
+              "docs/assets/web-invalid-length.png" \
+              "docs/assets/web-validation-demo.gif" \
+              "docs/evidence/manifest.json" \
+              "docs/evidence/web-validation-reference.png"
+          )"
+          test "$actual" = "$expected"
+          test -z "$(git ls-files --others --exclude-standard)"
+  
       - name: Preserve browser evidence drift for review
-        if: failure()
+        if: ${{ always() && steps.drift_inventory.outcome == 'success' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: browser-evidence-drift-${{ github.run_id }}

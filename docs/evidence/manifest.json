@@ -420,6 +420,10 @@
   "schema_version": 2,
   "source_files": [
     {
+      "path": ".github/workflows/verify.yml",
+      "sha256": "7ae04f1a485225ae022d8546fb3d8641df190579bf8b1c82d5344422a44111ad"
+    },
+    {
       "path": "MANIFEST.in",
       "sha256": "90a343738ccd474b81735cc3fd3e3a1cec947e47bc2c8cb5c8a9ff30c9eca679"
     },
@@ -433,7 +437,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "2524d9e69d196ed23bb76be3659ebd690d17a3b4a7c974b02f1c7bab3bcde2e4"
+      "sha256": "d3b6306cec1d054d165fb1d9af5a58a113d4fee022cbb1e9a0924f5f31cfc278"
     },
     {
       "path": "app.py",
@@ -449,7 +453,7 @@
     },
     {
       "path": "scripts/check_evidence.py",
-      "sha256": "47b8739b7fde11642d88963d74b53aecfed96fc3e6ddc0cbb3dbf4770c7e7f4a"
+      "sha256": "acf3652dcfa84791bc3c8cdcf57a5bc41361f48dc1eb87375c4beb9711e5e784"
     },
     {
       "path": "scripts/distribution_contract.py",
@@ -461,7 +465,7 @@
     },
     {
       "path": "scripts/generate_evidence.py",
-      "sha256": "d4bedb3609f542683b2d2b28dc8194204537ea21708507f201257301db9fa033"
+      "sha256": "a530f0a59091dd849d7fce029d52b44939e19719c3591420cfcfa1d5c22a7c0f"
     },
     {
       "path": "scripts/profile_complexity.py",

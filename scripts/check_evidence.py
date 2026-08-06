@@ -183,6 +183,7 @@ _WHEEL_MEMBERS = (
 _SDIST_FILES = tuple(
     sorted(
         {
+        ".github/workflows/verify.yml",
             "MANIFEST.in",
             "PACKAGE.md",
             "PKG-INFO",
@@ -833,6 +834,7 @@ def _validate_source_files(
     if paths != sorted(paths) or len(paths) != len(set(paths)):
         _fail("source_files paths must be unique and sorted")
     expected = {
+        ".github/workflows/verify.yml",
         "MANIFEST.in",
         "Makefile",
         "PACKAGE.md",
