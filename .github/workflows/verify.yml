@@ -165,3 +165,19 @@ jobs:
         run: |
           git diff --exit-code -- .
           test -z "$(git status --short --untracked-files=all)"
+  
+      - name: Preserve browser evidence drift for review
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: browser-evidence-drift-${{ github.run_id }}
+          path: |
+            docs/assets/web-home-mobile.png
+            docs/assets/web-home.png
+            docs/assets/web-invalid-length.png
+            docs/assets/web-validation-demo.gif
+            docs/evidence/manifest.json
+            docs/evidence/web-validation-reference.png
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
