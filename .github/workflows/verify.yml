@@ -110,11 +110,13 @@ jobs:
             --root "$GITHUB_WORKSPACE" \
             --work-root .evidence-work/distribution \
             > "$RUNNER_TEMP/distribution-attestation.json"
-          python -B scripts/attest_distribution.py \
-            --format text \
-            --root "$GITHUB_WORKSPACE" \
-            --work-root .evidence-work/distribution \
-            > "$RUNNER_TEMP/distribution-check.txt"
+          {
+            printf '%s\n' '$ python scripts/attest_distribution.py'
+            python -B scripts/attest_distribution.py \
+              --format text \
+              --root "$GITHUB_WORKSPACE" \
+              --work-root .evidence-work/distribution
+          } > "$RUNNER_TEMP/distribution-check.txt"
           cmp \
             "$RUNNER_TEMP/distribution-attestation.json" \
             docs/evidence/distribution-attestation.json
