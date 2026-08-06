@@ -183,7 +183,7 @@ _WHEEL_MEMBERS = (
 _SDIST_FILES = tuple(
     sorted(
         {
-        ".github/workflows/verify.yml",
+            ".github/workflows/verify.yml",
             "MANIFEST.in",
             "PACKAGE.md",
             "PKG-INFO",
