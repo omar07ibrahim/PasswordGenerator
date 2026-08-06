@@ -110,26 +110,11 @@ jobs:
             --root "$GITHUB_WORKSPACE" \
             --work-root .evidence-work/distribution \
             > "$RUNNER_TEMP/distribution-attestation.json"
-          python -B - \
-            "$RUNNER_TEMP/distribution-attestation.json" \
-            "$RUNNER_TEMP/distribution-check.txt" <<'PY'
-          import json
-          from pathlib import Path
-          import sys
-  
-          from scripts import attest_distribution
-  
-          report_path = Path(sys.argv[1])
-          text_path = Path(sys.argv[2])
-          payload = report_path.read_text(encoding="utf-8")
-          report = json.loads(payload)
-          if payload != attest_distribution._canonical_json(report):
-              raise SystemExit("distribution JSON is not canonical")
-          text_path.write_text(
-              attest_distribution._text_report(report),
-              encoding="utf-8",
-          )
-          PY
+          python -B scripts/attest_distribution.py \
+            --format text \
+            --root "$GITHUB_WORKSPACE" \
+            --work-root .evidence-work/distribution \
+            > "$RUNNER_TEMP/distribution-check.txt"
           cmp \
             "$RUNNER_TEMP/distribution-attestation.json" \
             docs/evidence/distribution-attestation.json
