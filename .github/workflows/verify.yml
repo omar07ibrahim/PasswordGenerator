@@ -1,0 +1,76 @@
+name: Verify
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  LC_ALL: C.UTF-8
+  PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONHASHSEED: "0"
+  PYTHONUTF8: "1"
+  TZ: UTC
+
+jobs:
+  core:
+    name: Core contract (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.11"
+          - "3.12"
+          - "3.13"
+          - "3.14"
+
+    steps:
+      - name: Check out the exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install the exact development stack
+        run: |
+          python -m pip install \
+            --disable-pip-version-check \
+            --no-input \
+            -e ".[dev]"
+          python -m pip check
+
+      - name: Enforce lint and formatting
+        run: make PYTHON=python lint
+
+      - name: Enforce strict typing
+        run: make PYTHON=python typecheck
+
+      - name: Run the full coverage gate
+        run: make PYTHON=python test
+
+      - name: Verify the committed evidence inventory
+        run: |
+          make \
+            PYTHON=python \
+            EVIDENCE_WORK="$RUNNER_TEMP/evidence-work" \
+            evidence-check
+
+      - name: Confirm verification left tracked files unchanged
+        run: |
+          git diff --exit-code -- .
+          test -z "$(git status --short --untracked-files=all)"
