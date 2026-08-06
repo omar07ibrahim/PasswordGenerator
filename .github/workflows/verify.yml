@@ -154,22 +154,12 @@ jobs:
           python -m pip check
   
       - name: Provision the pinned Chromium build
-        env:
-          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/playwright-browsers
-        run: python -m playwright install chromium
+        run: make PYTHON=python evidence-browser
   
       - name: Recapture every raw and visual artifact
         run: |
-          make \
-            PYTHON=python \
-            EVIDENCE_WORK="$RUNNER_TEMP/evidence-work" \
-            PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/playwright-browsers" \
-            evidence
-          make \
-            PYTHON=python \
-            EVIDENCE_WORK="$RUNNER_TEMP/evidence-work" \
-            PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/playwright-browsers" \
-            evidence-check
+          make PYTHON=python evidence
+          make PYTHON=python evidence-check
   
       - name: Require byte-identical evidence and a clean checkout
         run: |
