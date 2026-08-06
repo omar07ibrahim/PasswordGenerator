@@ -453,7 +453,7 @@
     },
     {
       "path": "scripts/check_evidence.py",
-      "sha256": "33da5f9a194a7e51aa717c751f9db67903001811247aa10821dc0b36565a232e"
+      "sha256": "463a03f06842f654f6e8077b40c888a34778892e3292af0e927d2b50c05454a6"
     },
     {
       "path": "scripts/distribution_contract.py",
