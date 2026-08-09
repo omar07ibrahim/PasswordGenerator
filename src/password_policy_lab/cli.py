@@ -338,9 +338,7 @@ def _sensitivity_row(
 
 def _sensitivity_csv(report: PolicySensitivity) -> str:
     lines = [",".join(_SENSITIVITY_COLUMNS)]
-    lines.extend(
-        ",".join(_sensitivity_row(report, row)) for row in report.rows
-    )
+    lines.extend(",".join(_sensitivity_row(report, row)) for row in report.rows)
     return "\n".join(lines) + "\n"
 
 
@@ -366,8 +364,7 @@ def _sensitivity_text(report: PolicySensitivity) -> str:
         lines.extend(
             (
                 f"{prefix}.minimum: {row.original_minimum} -> {row.relaxed_minimum}",
-                f"{prefix}.relaxation_applied: "
-                f"{str(row.relaxation_applied).lower()}",
+                f"{prefix}.relaxation_applied: {str(row.relaxation_applied).lower()}",
                 f"{prefix}.relaxed_policy_sha256: {row.relaxed_policy_sha256}",
                 f"{prefix}.relaxed_valid: {row.relaxed_valid}",
                 f"{prefix}.added_if_relaxed: {row.added_if_relaxed}",

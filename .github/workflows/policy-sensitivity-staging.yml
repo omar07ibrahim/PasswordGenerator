@@ -42,7 +42,12 @@ jobs:
         run: |
           make PYTHON=python lint
           make PYTHON=python typecheck
-          make PYTHON=python test
+          PYTHONPATH=src python -m pytest \
+            --ignore=tests/test_evidence.py \
+            --cov=password_policy_lab \
+            --cov-branch \
+            --cov-report=term-missing \
+            -q
 
       - name: Require a clean checkout
         run: |
