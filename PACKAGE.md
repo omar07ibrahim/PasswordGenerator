@@ -5,11 +5,16 @@ exactly and exposes deterministic inspection, rank, and unrank operations. Its
 production sampler selects one uniform integer rank with `secrets.randbelow`
 and maps that rank to a candidate without retrying invalid strings.
 
-The installed command can inspect a policy without sampling:
+The installed command can inspect a policy or measure each class minimum's
+exact one-step marginal effect without sampling:
 
 ```bash
 password-policy-lab inspect --length 20 --format json
+password-policy-lab sensitivity --length 20 --format json
 ```
+
+Sensitivity rows change one minimum at a time and are explicitly non-additive;
+they do not estimate password strength.
 
 `rank` and `unrank` are reversible and are intended only for explicitly public
 test vectors. Both require `--acknowledge-reversible-output`; never use them

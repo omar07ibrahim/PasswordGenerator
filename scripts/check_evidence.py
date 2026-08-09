@@ -28,7 +28,11 @@ from PIL import Image
 from password_policy_lab.inspection import (
     RANK_ORDER_VERSION,
     REPORT_SCHEMA_VERSION,
+    SENSITIVITY_ANALYSIS,
+    SENSITIVITY_SCHEMA_VERSION,
+    PolicySensitivity,
     StateSpaceInspection,
+    analyze_policy_sensitivity,
     inspect_policy,
 )
 from password_policy_lab.profiles import (
@@ -77,6 +81,8 @@ EXPECTED_ASSETS = frozenset(
         "docs/assets/dp-complexity-cli.png",
         "docs/assets/dp-layer-occupancy.svg",
         "docs/assets/dp-work-counts.svg",
+        "docs/assets/policy-sensitivity-cli.png",
+        "docs/assets/policy-sensitivity-impact.svg",
         "docs/assets/quality-gate.png",
         "docs/assets/setup-workflow.svg",
         "docs/assets/state-space-sweep.png",
@@ -94,6 +100,8 @@ EXPECTED_RAW_EVIDENCE = frozenset(
         "docs/evidence/distribution-check.txt",
         COMPLEXITY_JSON_PATH,
         COMPLEXITY_TEXT_PATH,
+        "docs/evidence/policy-sensitivity.json",
+        "docs/evidence/policy-sensitivity.txt",
         "docs/evidence/quality-gate.txt",
         "docs/evidence/state-space-sweep.csv",
     }
@@ -130,6 +138,13 @@ SWEEP_COMMAND = (
     "password-policy-lab sweep --start-length 8 --end-length 32 --format csv"
 )
 INSPECT_COMMAND = "password-policy-lab inspect --length 20 --format text"
+SENSITIVITY_JSON_COMMAND = (
+    "password-policy-lab sensitivity --length 20 --format json"
+)
+SENSITIVITY_TEXT_COMMAND = (
+    "password-policy-lab sensitivity --length 20 --format text"
+)
+SENSITIVITY_PNG_TITLE = "Exact one-step policy sensitivity · length 20"
 QUALITY_COMMANDS = (
     "python -m ruff check app.py scripts src tests",
     "python -m ruff format --check app.py scripts src tests",
@@ -812,6 +827,57 @@ def _expected_inspection(report: StateSpaceInspection) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _expected_sensitivity_text(report: PolicySensitivity) -> str:
+    policy = report.policy
+    lines = [
+        f"sensitivity_schema_version: {SENSITIVITY_SCHEMA_VERSION}",
+        f"analysis: {SENSITIVITY_ANALYSIS}",
+        "operation: sensitivity",
+        f"rank_order_version: {RANK_ORDER_VERSION}",
+        f"profile: {VISIBLE_ASCII_PROFILE}",
+        f"policy_sha256: {report.policy_sha256}",
+        f"length: {policy.length}",
+        f"alphabet_size: {len(policy.alphabet)}",
+        f"baseline_valid: {report.baseline_valid}",
+        "claim_boundary.one_step_only: true",
+        "claim_boundary.effects_are_not_additive: true",
+        "claim_boundary.contains_candidate: false",
+        "claim_boundary.samples_entropy: false",
+    ]
+    for row in report.rows:
+        prefix = f"class.{row.class_name}"
+        lines.extend(
+            (
+                f"{prefix}.minimum: {row.original_minimum} -> {row.relaxed_minimum}",
+                f"{prefix}.relaxation_applied: {str(row.relaxation_applied).lower()}",
+                f"{prefix}.relaxed_policy_sha256: {row.relaxed_policy_sha256}",
+                f"{prefix}.relaxed_valid: {row.relaxed_valid}",
+                f"{prefix}.added_if_relaxed: {row.added_if_relaxed}",
+                f"{prefix}.baseline_share_of_relaxed: "
+                f"{row.baseline_fraction_numerator}/"
+                f"{row.baseline_fraction_denominator}",
+            )
+        )
+    return "
+".join(lines) + "
+"
+
+
+def _expected_sensitivity_evidence() -> tuple[dict[str, object], str, str]:
+    report = analyze_policy_sensitivity(visible_ascii_policy(20))
+    mapping = report.to_mapping()
+    del mapping["sensitivity_schema_version"]
+    document = {
+        "sensitivity_schema_version": SENSITIVITY_SCHEMA_VERSION,
+        "operation": "sensitivity",
+        "profile": VISIBLE_ASCII_PROFILE,
+        **mapping,
+    }
+    json_text = json.dumps(document, ensure_ascii=True, indent=2) + "
+"
+    return document, json_text, _expected_sensitivity_text(report)
+
+
 def _validate_source_files(
     root: Path,
     value: object,
@@ -1090,6 +1156,7 @@ def _validate_evidence_claims(value: object) -> None:
             "cli_inspect",
             "diagrams",
             "dp_complexity_profile",
+            "policy_sensitivity",
             "quality_gate",
             "sweep",
         },
@@ -1097,6 +1164,32 @@ def _validate_evidence_claims(value: object) -> None:
     )
 
     _validate_complexity_envelope(evidence["dp_complexity_profile"])
+
+    sensitivity = _mapping(
+        evidence["policy_sensitivity"],
+        "evidence.policy_sensitivity",
+    )
+    _exact_keys(
+        sensitivity,
+        {
+            "baseline_valid",
+            "claim_boundary",
+            "json_source_command",
+            "rows",
+            "text_source_command",
+        },
+        "evidence.policy_sensitivity",
+    )
+    expected_sensitivity, _, _ = _expected_sensitivity_evidence()
+    if (
+        sensitivity["baseline_valid"] != expected_sensitivity["baseline_valid"]
+        or sensitivity["claim_boundary"]
+        != expected_sensitivity["claim_boundary"]
+        or sensitivity["json_source_command"] != SENSITIVITY_JSON_COMMAND
+        or sensitivity["text_source_command"] != SENSITIVITY_TEXT_COMMAND
+        or sensitivity["rows"] != 4
+    ):
+        _fail("evidence.policy_sensitivity is not the canonical exact report")
 
     sweep = _mapping(evidence["sweep"], "evidence.sweep")
     _exact_keys(
@@ -1281,7 +1374,30 @@ def _validate_artifacts(
     return textual
 
 
-def _validate_raw_evidence(textual: dict[str, str]) -> None:
+
+def _validate_sensitivity_evidence(textual: dict[str, str]) -> dict[str, object]:
+    json_text = textual["docs/evidence/policy-sensitivity.json"]
+    text = textual["docs/evidence/policy-sensitivity.txt"]
+    try:
+        decoded = json.loads(json_text)
+    except json.JSONDecodeError as error:
+        raise EvidenceValidationError(
+            "policy sensitivity JSON cannot be decoded"
+        ) from error
+    if type(decoded) is not dict:
+        _fail("policy sensitivity JSON root is not an object")
+    document = cast(dict[str, object], decoded)
+    expected_document, expected_json, expected_text = (
+        _expected_sensitivity_evidence()
+    )
+    if document != expected_document or json_text != expected_json:
+        _fail("policy sensitivity JSON does not match the exact core")
+    if text != expected_text:
+        _fail("policy sensitivity text does not match the exact core")
+    return document
+
+
+def _validate_raw_evidence(textual: dict[str, str]) -> dict[str, object]:
     sweep = textual["docs/evidence/state-space-sweep.csv"]
     if sweep != _expected_sweep():
         _fail("state-space sweep does not match the exact core")
@@ -1298,6 +1414,8 @@ def _validate_raw_evidence(textual: dict[str, str]) -> None:
     if inspection != _expected_inspection(inspect_policy(visible_ascii_policy(20))):
         _fail("CLI inspection transcript does not match the exact core")
 
+    sensitivity_document = _validate_sensitivity_evidence(textual)
+
     quality = textual["docs/evidence/quality-gate.txt"]
     if not quality.endswith("\n") or not quality.strip():
         _fail("quality-gate transcript must be nonempty and newline-terminated")
@@ -1306,6 +1424,7 @@ def _validate_raw_evidence(textual: dict[str, str]) -> None:
         command_offsets
     ):
         _fail("quality-gate transcript omits ordered command headers")
+    return sensitivity_document
 
 
 def _integer_list(value: object, label: str, *, minimum: int = 0) -> list[int]:
@@ -1770,6 +1889,43 @@ def _validate_complexity_renderings(
     actual_png = _read_bounded(root / png_relative, png_relative)
     if actual_png != rendered_png:
         _fail(f"complexity visual is stale against its pure renderer: {png_relative}")
+
+
+
+def _validate_sensitivity_renderings(
+    root: Path,
+    report: dict[str, object],
+    transcript_text: str,
+) -> None:
+    try:
+        rendering = _load_local_module("evidence_rendering")
+    except (ImportError, OSError, RuntimeError) as error:
+        raise EvidenceValidationError(
+            "policy sensitivity renderers could not be loaded"
+        ) from error
+    svg_renderer = getattr(rendering, "render_policy_sensitivity_svg", None)
+    png_renderer = getattr(rendering, "render_terminal_png_bytes", None)
+    if not callable(svg_renderer) or not callable(png_renderer):
+        _fail("required pure policy sensitivity renderer is missing")
+    try:
+        expected_svg = svg_renderer(report)
+        expected_png = png_renderer(
+            transcript=f"$ {SENSITIVITY_TEXT_COMMAND}
+{transcript_text}",
+            title=SENSITIVITY_PNG_TITLE,
+        )
+    except Exception as error:
+        raise EvidenceValidationError(
+            "pure policy sensitivity renderer failed"
+        ) from error
+    if type(expected_svg) is not str or type(expected_png) is not bytes:
+        _fail("pure policy sensitivity renderer returned an invalid value")
+    svg_path = "docs/assets/policy-sensitivity-impact.svg"
+    png_path = "docs/assets/policy-sensitivity-cli.png"
+    if _read_bounded(root / svg_path, svg_path) != expected_svg.encode("utf-8"):
+        _fail("policy sensitivity SVG is stale against its pure renderer")
+    if _read_bounded(root / png_path, png_path) != expected_png:
+        _fail("policy sensitivity terminal image is stale against its transcript")
 
 
 def _distribution_input_digest(root: Path) -> str:
@@ -2469,7 +2625,12 @@ def validate_evidence(root: Path) -> None:
         textual["docs/evidence/distribution-check.txt"],
         textual["docs/assets/distribution-contract.svg"],
     )
-    _validate_raw_evidence(textual)
+    sensitivity_document = _validate_raw_evidence(textual)
+    _validate_sensitivity_renderings(
+        repository,
+        sensitivity_document,
+        textual["docs/evidence/policy-sensitivity.txt"],
+    )
     _validate_gif_fidelity(repository)
     _validate_ast_claims(repository, textual)
     _validate_readme(repository)

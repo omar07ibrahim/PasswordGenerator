@@ -127,6 +127,39 @@ policy-satisfying share on an honest 0–100% scale. Counts and entropy describe
 uniform draw from this state space; they are not a password-strength score or an
 authentication guarantee.
 
+## Exact one-step policy-minimum sensitivity
+
+![Exact one-step impact of relaxing each class minimum](docs/assets/policy-sensitivity-impact.svg)
+
+The `sensitivity` command keeps length, alphabet, class order, and every other
+minimum fixed, then lowers exactly one class minimum by at most one. For the
+canonical length-20 policy the baseline contains
+`2,585,908,648,140,078,948,280,078,326,668,093,030,400` valid strings. The
+independently recomputed one-step additions are:
+
+| Relaxed minimum | Exact strings added | Relaxed total |
+|---|---:|---:|
+| lowercase `1 → 0` | `4,282,773,611,815,523,203,733,351,229,397,401,600` | `2,590,191,421,751,894,471,483,811,677,897,490,432,000` |
+| uppercase `1 → 0` | `4,282,773,611,815,523,203,733,351,229,397,401,600` | `2,590,191,421,751,894,471,483,811,677,897,490,432,000` |
+| digits `1 → 0` | `305,512,318,837,986,411,479,186,500,202,608,459,776` | `2,891,420,966,978,065,359,759,264,826,870,701,490,176` |
+| punctuation `1 → 0` | `683,500,551,758,275,124,507,688,616,801,075,200` | `2,586,592,148,691,837,223,404,586,015,284,894,105,600` |
+
+![Real deterministic policy-sensitivity CLI output](docs/assets/policy-sensitivity-cli.png)
+
+```bash
+password-policy-lab sensitivity --length 20 --format text
+password-policy-lab sensitivity --length 20 --format json
+password-policy-lab sensitivity --length 20 --format csv
+```
+
+The [canonical JSON](docs/evidence/policy-sensitivity.json) and
+[real text transcript](docs/evidence/policy-sensitivity.txt) retain each relaxed
+policy fingerprint, exact total, exact addition, and reduced
+baseline-to-relaxed fraction. This is a local one-step marginal analysis: the
+rows must not be added together, it is not a password-strength estimate, and it
+never constructs a candidate or consumes entropy. The SVG renderer fails closed
+unless those arithmetic and claim-boundary invariants agree with the core.
+
 ## Differential dynamic-programming work evidence
 
 ![Exact logical work counters for six fixed policy scenarios](docs/assets/dp-work-counts.svg)
