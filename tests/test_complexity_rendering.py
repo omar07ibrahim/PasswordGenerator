@@ -10,6 +10,8 @@ from typing import Any, cast
 
 import pytest
 
+from password_policy_lab import analyze_policy_sensitivity, visible_ascii_policy
+
 
 def _load_script(name: str) -> ModuleType:
     path = Path(__file__).resolve().parents[1] / "scripts" / f"{name}.py"
@@ -233,5 +235,85 @@ def test_complexity_renderers_fail_closed_before_writing(
 
     with pytest.raises(ValueError, match="invalid complexity profile"):
         getattr(rendering, renderer)(_mutated_report(mutation), path)
+
+    assert not path.exists()
+
+
+def _sensitivity_document() -> dict[str, object]:
+    report = analyze_policy_sensitivity(visible_ascii_policy(20)).to_mapping()
+    return {
+        "operation": "sensitivity",
+        "profile": "visible-ascii-v1",
+        **report,
+    }
+
+
+def test_policy_sensitivity_svg_is_exact_accessible_and_deterministic(
+    tmp_path: Path,
+) -> None:
+    report = _sensitivity_document()
+    before = copy.deepcopy(report)
+    first = tmp_path / "sensitivity-a.svg"
+    second = tmp_path / "sensitivity-b.svg"
+    rendered = rendering.render_policy_sensitivity_svg(report)
+
+    rendering.write_policy_sensitivity_svg(report, first)
+    rendering.write_policy_sensitivity_svg(report, second)
+
+    root, text = _svg(first)
+    _assert_accessible_local_svg(root, width=1800, height=850)
+    assert rendered == rendering.render_policy_sensitivity_svg(report)
+    assert first.read_text(encoding="utf-8") == rendered
+    assert first.read_bytes() == second.read_bytes()
+    assert report == before
+    assert len(_groups(root, "sensitivity-")) == 4
+    for expected in (
+        "2,585,908,648,140,078,948,280,078,326,668,093,030,400",
+        "+4,282,773,611,815,523,203,733,351,229,397,401,600",
+        "+305,512,318,837,986,411,479,186,500,202,608,459,776",
+        "+683,500,551,758,275,124,507,688,616,801,075,200",
+        "effects are not additive",
+        "no candidate",
+        "no entropy",
+    ):
+        assert expected in text
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "schema-bool",
+        "row-order",
+        "baseline-zero",
+        "additive-overclaim",
+        "added-mismatch",
+        "bad-policy-digest",
+    ),
+)
+def test_policy_sensitivity_renderer_fails_closed_before_writing(
+    mutation: str,
+    tmp_path: Path,
+) -> None:
+    report = copy.deepcopy(_sensitivity_document())
+    rows = cast(list[dict[str, object]], report["rows"])
+    boundary = cast(dict[str, object], report["claim_boundary"])
+    if mutation == "schema-bool":
+        report["sensitivity_schema_version"] = True
+    elif mutation == "row-order":
+        rows[0], rows[1] = rows[1], rows[0]
+    elif mutation == "baseline-zero":
+        report["baseline_valid"] = "0"
+    elif mutation == "additive-overclaim":
+        boundary["effects_are_not_additive"] = False
+    elif mutation == "added-mismatch":
+        rows[0]["added_if_relaxed"] = "1"
+    elif mutation == "bad-policy-digest":
+        report["policy_sha256"] = "sha256:BAD"
+    else:  # pragma: no cover - test helper contract
+        raise AssertionError("unknown mutation")
+    path = tmp_path / f"{mutation}.svg"
+
+    with pytest.raises(ValueError, match="invalid policy sensitivity"):
+        rendering.write_policy_sensitivity_svg(report, path)
 
     assert not path.exists()

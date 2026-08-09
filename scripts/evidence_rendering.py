@@ -12,7 +12,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from io import BytesIO
 from itertools import pairwise
-from math import prod
+from math import gcd, prod
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -51,6 +51,17 @@ class GifFidelity:
     @property
     def frame_count(self) -> int:
         return len(self.frames)
+
+
+@dataclass(frozen=True, slots=True)
+class _SensitivityRow:
+    class_name: str
+    original_minimum: int
+    relaxed_minimum: int
+    relaxed_valid: int
+    added_if_relaxed: int
+    fraction_numerator: int
+    fraction_denominator: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -994,6 +1005,231 @@ def write_distribution_svg(
         ),
         encoding="utf-8",
     )
+
+
+_SENSITIVITY_CLASS_NAMES = ("lower", "upper", "digits", "punctuation")
+
+
+def _sensitivity_decimal(value: object, *, label: str, minimum: int = 0) -> int:
+    if (
+        type(value) is not str
+        or not value
+        or len(value) > 4096
+        or not value.isascii()
+        or not value.isdecimal()
+        or (len(value) > 1 and value.startswith("0"))
+    ):
+        raise ValueError(f"invalid policy sensitivity {label}")
+    parsed = int(value)
+    if parsed < minimum:
+        raise ValueError(f"invalid policy sensitivity {label}")
+    return parsed
+
+
+def _sensitivity_sha256(value: object, *, label: str) -> str:
+    if (
+        type(value) is not str
+        or len(value) != 71
+        or not value.startswith("sha256:")
+        or any(character not in "0123456789abcdef" for character in value[7:])
+    ):
+        raise ValueError(f"invalid policy sensitivity {label}")
+    return value
+
+
+def _validated_policy_sensitivity(
+    report: object,
+) -> tuple[int, str, tuple[_SensitivityRow, ...]]:
+    document = _profile_mapping(
+        report,
+        keys={
+            "analysis",
+            "baseline_valid",
+            "claim_boundary",
+            "operation",
+            "policy",
+            "policy_sha256",
+            "profile",
+            "rank_order_version",
+            "rows",
+            "sensitivity_schema_version",
+        },
+        label="policy sensitivity document",
+    )
+    if (
+        document["sensitivity_schema_version"] != 1
+        or document["analysis"] != "one-step-class-minimum-relaxation-v1"
+        or document["operation"] != "sensitivity"
+        or document["profile"] != "visible-ascii-v1"
+        or document["rank_order_version"] != "class-symbol-lexicographic-v1"
+    ):
+        raise ValueError("invalid policy sensitivity identity")
+    policy_sha256 = _sensitivity_sha256(
+        document["policy_sha256"],
+        label="policy_sha256",
+    )
+    policy = _profile_mapping(
+        document["policy"],
+        keys={"alphabet_size", "class_minima", "length"},
+        label="policy sensitivity policy",
+    )
+    minima = _profile_mapping(
+        policy["class_minima"],
+        keys=set(_SENSITIVITY_CLASS_NAMES),
+        label="policy sensitivity class minima",
+    )
+    if (
+        policy["length"] != 20
+        or policy["alphabet_size"] != 94
+        or minima != {name: 1 for name in _SENSITIVITY_CLASS_NAMES}
+    ):
+        raise ValueError("invalid policy sensitivity canonical policy")
+    boundary = _profile_mapping(
+        document["claim_boundary"],
+        keys={
+            "contains_candidate",
+            "effects_are_not_additive",
+            "one_step_only",
+            "samples_entropy",
+        },
+        label="policy sensitivity claim boundary",
+    )
+    if boundary != {
+        "contains_candidate": False,
+        "effects_are_not_additive": True,
+        "one_step_only": True,
+        "samples_entropy": False,
+    }:
+        raise ValueError("invalid policy sensitivity claim boundary")
+
+    baseline = _sensitivity_decimal(
+        document["baseline_valid"],
+        label="baseline_valid",
+        minimum=1,
+    )
+    raw_rows = _profile_list(document["rows"], label="policy sensitivity rows")
+    if len(raw_rows) != len(_SENSITIVITY_CLASS_NAMES):
+        raise ValueError("invalid policy sensitivity row count")
+    rows: list[_SensitivityRow] = []
+    for index, expected_name in enumerate(_SENSITIVITY_CLASS_NAMES):
+        row = _profile_mapping(
+            raw_rows[index],
+            keys={
+                "added_if_relaxed",
+                "baseline_share_of_relaxed",
+                "class_name",
+                "original_minimum",
+                "relaxation_applied",
+                "relaxed_minimum",
+                "relaxed_policy_sha256",
+                "relaxed_valid",
+            },
+            label=f"policy sensitivity rows[{index}]",
+        )
+        relaxed_valid = _sensitivity_decimal(
+            row["relaxed_valid"],
+            label=f"rows[{index}].relaxed_valid",
+            minimum=1,
+        )
+        added = _sensitivity_decimal(
+            row["added_if_relaxed"],
+            label=f"rows[{index}].added_if_relaxed",
+        )
+        fraction = _profile_mapping(
+            row["baseline_share_of_relaxed"],
+            keys={"denominator", "numerator"},
+            label=f"policy sensitivity rows[{index}] fraction",
+        )
+        numerator = _sensitivity_decimal(
+            fraction["numerator"],
+            label=f"rows[{index}].fraction.numerator",
+            minimum=1,
+        )
+        denominator = _sensitivity_decimal(
+            fraction["denominator"],
+            label=f"rows[{index}].fraction.denominator",
+            minimum=1,
+        )
+        _sensitivity_sha256(
+            row["relaxed_policy_sha256"],
+            label=f"rows[{index}].relaxed_policy_sha256",
+        )
+        if (
+            row["class_name"] != expected_name
+            or row["original_minimum"] != 1
+            or row["relaxation_applied"] is not True
+            or row["relaxed_minimum"] != 0
+            or relaxed_valid != baseline + added
+            or numerator * relaxed_valid != denominator * baseline
+            or gcd(numerator, denominator) != 1
+        ):
+            raise ValueError(f"invalid policy sensitivity rows[{index}]")
+        rows.append(
+            _SensitivityRow(
+                class_name=expected_name,
+                original_minimum=1,
+                relaxed_minimum=0,
+                relaxed_valid=relaxed_valid,
+                added_if_relaxed=added,
+                fraction_numerator=numerator,
+                fraction_denominator=denominator,
+            )
+        )
+    return baseline, policy_sha256, tuple(rows)
+
+
+def render_policy_sensitivity_svg(report: object) -> str:
+    """Return an exact source-bound one-step minimum-impact chart."""
+
+    baseline, policy_sha256, rows = _validated_policy_sensitivity(report)
+    maximum_added = max(row.added_if_relaxed for row in rows)
+    rendered_rows: list[str] = []
+    for index, row in enumerate(rows):
+        y = 270 + index * 125
+        bar_width = max(3, 710 * row.added_if_relaxed // maximum_added)
+        aria = (
+            f"{row.class_name}; minimum one to zero; added "
+            f"{row.added_if_relaxed}; relaxed valid {row.relaxed_valid}"
+        )
+        rendered_rows.append(
+            f"""  <g id="sensitivity-{row.class_name}" role="group" aria-label="{aria}">
+    <text x="80" y="{y + 24}" class="node-title">{row.class_name}</text>
+    <text x="80" y="{y + 53}" class="node-code">minimum {row.original_minimum} → {row.relaxed_minimum}</text>
+    <rect x="350" y="{y}" width="710" height="32" rx="16" fill="{SURFACE_RAISED}" stroke="{LINE}"/>
+    <rect x="350" y="{y}" width="{bar_width}" height="32" rx="16" fill="{TEAL}"/>
+    <text x="1095" y="{y + 24}" class="node-code">+{row.added_if_relaxed:,}</text>
+    <text x="1095" y="{y + 53}" class="node-detail">relaxed total {row.relaxed_valid:,}</text>
+    <text x="1095" y="{y + 78}" class="caption">baseline share {row.fraction_numerator}/{row.fraction_denominator}</text>
+  </g>"""
+        )
+
+    body = f"""  <text x="70" y="78" class="title">One-step minimum sensitivity · exact state-space impact</text>
+  <text x="70" y="118" class="subtitle">Length 20 · lower exactly one class minimum from 1 to 0 while every other policy field stays fixed.</text>
+  <rect x="70" y="150" width="1660" height="78" rx="18" fill="{SURFACE}" stroke="{LINE}"/>
+  <text x="100" y="182" class="lane">BASELINE VALID STRINGS</text>
+  <text x="100" y="211" class="node-code">{baseline:,}</text>
+  <text x="1688" y="183" text-anchor="end" class="caption">policy …{policy_sha256[-16:]}</text>
+  <text x="350" y="252" class="lane">ADDED IF THIS ONE MINIMUM IS RELAXED · BARS NORMALIZED TO LARGEST EXACT COUNT</text>
+{"".join(rendered_rows)}
+  <rect x="70" y="775" width="1660" height="42" rx="14" fill="{SURFACE_RAISED}" stroke="{LINE}"/>
+  <text x="100" y="802" class="caption">One step only · effects are not additive · no candidate · no entropy · exact integer dynamic programming</text>"""
+    return _svg_document(
+        title="Exact one-step password-policy minimum sensitivity",
+        description=(
+            "Four exact bars show how many valid length-twenty visible-ASCII "
+            "strings are added when one class minimum is lowered from one to "
+            "zero. Effects are explicitly non-additive and entropy-free."
+        ),
+        width=1800,
+        height=850,
+        body=body,
+    )
+
+
+def write_policy_sensitivity_svg(report: object, path: Path) -> None:
+    """Write the deterministic exact minimum-sensitivity SVG."""
+
+    path.write_text(render_policy_sensitivity_svg(report), encoding="utf-8")
 
 
 def _counter_bar(*, x: int, y: int, width: int, observed: int, bound: int) -> str:
