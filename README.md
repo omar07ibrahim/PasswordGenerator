@@ -234,6 +234,27 @@ These choices follow the official
 and
 [deployment guidance](https://flask.palletsprojects.com/en/stable/deploying/).
 
+## Security reporting and repository controls
+
+Report suspected vulnerabilities through the
+[security policy](SECURITY.md), using synthetic data and the private channel
+linked there. The policy also records the loopback deployment boundary,
+unsupported uses, reversible-command warning, lack of memory-zeroization
+guarantees, and best-effort support scope.
+
+Weekly update automation for the exact Python and GitHub Actions pins is
+declared in the
+[Dependabot configuration](.github/dependabot.yml). Direct dependencies are
+version-pinned, but the development install still resolves transitive
+distributions without a hash lock. The distribution attestation therefore
+continues to exclude dependency-integrity and signature claims.
+
+Secret scanning, push protection, code scanning, vulnerability alerts, and
+default-branch rules are GitHub-hosted operational settings. They are not
+reproducible properties of a Git commit or claims covered by the evidence
+manifest; their current status must be verified in the repository Security and
+Rules settings.
+
 ## Rebuild the evidence
 
 Install the pinned Chromium build into the ignored repository-local directory,
