@@ -326,9 +326,7 @@ def test_policy_sensitivity_evidence_is_exact_and_rejects_count_drift() -> None:
     }
 
     assert check_evidence._validate_sensitivity_evidence(textual) == document
-    assert document["baseline_valid"] == (
-        "2585908648140078948280078326668093030400"
-    )
+    assert document["baseline_valid"] == ("2585908648140078948280078326668093030400")
     rows = cast(list[dict[str, object]], document["rows"])
     assert [row["class_name"] for row in rows] == [
         "lower",
