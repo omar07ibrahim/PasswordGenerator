@@ -1176,8 +1176,7 @@ def _validate_evidence_claims(value: object) -> None:
     expected_sensitivity, _, _ = _expected_sensitivity_evidence()
     if (
         sensitivity["baseline_valid"] != expected_sensitivity["baseline_valid"]
-        or sensitivity["claim_boundary"]
-        != expected_sensitivity["claim_boundary"]
+        or sensitivity["claim_boundary"] != expected_sensitivity["claim_boundary"]
         or sensitivity["json_source_command"] != SENSITIVITY_JSON_COMMAND
         or sensitivity["text_source_command"] != SENSITIVITY_TEXT_COMMAND
         or sensitivity["rows"] != 4
@@ -1367,7 +1366,6 @@ def _validate_artifacts(
     return textual
 
 
-
 def _validate_sensitivity_evidence(textual: dict[str, str]) -> dict[str, object]:
     json_text = textual["docs/evidence/policy-sensitivity.json"]
     text = textual["docs/evidence/policy-sensitivity.txt"]
@@ -1380,9 +1378,7 @@ def _validate_sensitivity_evidence(textual: dict[str, str]) -> dict[str, object]
     if type(decoded) is not dict:
         _fail("policy sensitivity JSON root is not an object")
     document = cast(dict[str, object], decoded)
-    expected_document, expected_json, expected_text = (
-        _expected_sensitivity_evidence()
-    )
+    expected_document, expected_json, expected_text = _expected_sensitivity_evidence()
     if document != expected_document or json_text != expected_json:
         _fail("policy sensitivity JSON does not match the exact core")
     if text != expected_text:
@@ -1882,7 +1878,6 @@ def _validate_complexity_renderings(
     actual_png = _read_bounded(root / png_relative, png_relative)
     if actual_png != rendered_png:
         _fail(f"complexity visual is stale against its pure renderer: {png_relative}")
-
 
 
 def _validate_sensitivity_renderings(
