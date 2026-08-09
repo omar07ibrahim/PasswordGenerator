@@ -76,12 +76,12 @@ EXPECTED_METADATA_PREFIX = (
     b'Requires-Dist: build==1.5.0; extra == "dev"\n'
     b'Requires-Dist: matplotlib==3.11.1; extra == "dev"\n'
     b'Requires-Dist: mypy==2.3.0; extra == "dev"\n'
-    b'Requires-Dist: numpy==2.3.5; extra == "dev"\n'
+    b'Requires-Dist: numpy==2.4.6; extra == "dev"\n'
     b'Requires-Dist: Pillow==12.3.0; extra == "dev"\n'
-    b'Requires-Dist: playwright==1.61.0; extra == "dev"\n'
+    b'Requires-Dist: playwright==1.62.0; extra == "dev"\n'
     b'Requires-Dist: pytest==9.1.1; extra == "dev"\n'
     b'Requires-Dist: pytest-cov==7.1.0; extra == "dev"\n'
-    b'Requires-Dist: ruff==0.16.0; extra == "dev"\n'
+    b'Requires-Dist: ruff==0.16.1; extra == "dev"\n'
     b'Requires-Dist: setuptools==83.0.0; extra == "dev"\n'
     b"\n"
 )
