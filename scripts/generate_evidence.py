@@ -41,6 +41,7 @@ from evidence_rendering import (
     write_dp_layer_occupancy_svg,
     write_dp_work_counts_svg,
     write_gif,
+    write_policy_sensitivity_svg,
     write_sampling_svg,
     write_setup_svg,
 )
@@ -67,6 +68,13 @@ SWEEP_COMMAND = (
     "password-policy-lab sweep --start-length 8 --end-length 32 --format csv"
 )
 INSPECT_COMMAND = "password-policy-lab inspect --length 20 --format text"
+SENSITIVITY_JSON_COMMAND = (
+    "password-policy-lab sensitivity --length 20 --format json"
+)
+SENSITIVITY_TEXT_COMMAND = (
+    "password-policy-lab sensitivity --length 20 --format text"
+)
+SENSITIVITY_PNG_TITLE = "Exact one-step policy sensitivity · length 20"
 PROFILE_JSON_COMMAND = (
     "PYTHONPATH=src python scripts/profile_complexity.py --format json"
 )
@@ -94,6 +102,8 @@ OUTPUT_PATHS = (
     "docs/assets/dp-complexity-cli.png",
     "docs/assets/dp-layer-occupancy.svg",
     "docs/assets/dp-work-counts.svg",
+    "docs/assets/policy-sensitivity-cli.png",
+    "docs/assets/policy-sensitivity-impact.svg",
     "docs/assets/quality-gate.png",
     "docs/assets/setup-workflow.svg",
     "docs/assets/state-space-sweep.png",
@@ -107,6 +117,8 @@ OUTPUT_PATHS = (
     "docs/evidence/distribution-check.txt",
     "docs/evidence/dp-complexity-profile.json",
     "docs/evidence/dp-complexity-profile.txt",
+    "docs/evidence/policy-sensitivity.json",
+    "docs/evidence/policy-sensitivity.txt",
     "docs/evidence/quality-gate.txt",
     "docs/evidence/state-space-sweep.csv",
     "docs/evidence/web-validation-reference.png",
@@ -236,7 +248,7 @@ def _cli_arguments(*arguments: str) -> tuple[str, ...]:
     return (str(PYTHON), "-m", "password_policy_lab", *arguments)
 
 
-def _write_cli_evidence() -> list[_SweepRow]:
+def _write_cli_evidence() -> tuple[list[_SweepRow], dict[str, object]]:
     inspect_output = _run(
         _cli_arguments("inspect", "--length", "20", "--format", "text")
     )
@@ -251,6 +263,46 @@ def _write_cli_evidence() -> list[_SweepRow]:
         transcript=inspect_transcript,
         title="Exact policy inspection · length 20",
         path=ASSET_DIR / "cli-inspect.png",
+    )
+
+    sensitivity_json = _run(
+        _cli_arguments("sensitivity", "--length", "20", "--format", "json")
+    )
+    sensitivity_text = _run(
+        _cli_arguments("sensitivity", "--length", "20", "--format", "text")
+    )
+    try:
+        decoded_sensitivity = json.loads(sensitivity_json)
+    except json.JSONDecodeError as error:
+        raise RuntimeError("sensitivity CLI did not emit valid JSON") from error
+    if type(decoded_sensitivity) is not dict:
+        raise RuntimeError("sensitivity CLI JSON root is not an object")
+    sensitivity_document = cast(dict[str, object], decoded_sensitivity)
+    boundary = sensitivity_document.get("claim_boundary")
+    if boundary != {
+        "contains_candidate": False,
+        "effects_are_not_additive": True,
+        "one_step_only": True,
+        "samples_entropy": False,
+    }:
+        raise RuntimeError("sensitivity CLI claim boundary is not canonical")
+    (EVIDENCE_DIR / "policy-sensitivity.json").write_text(
+        sensitivity_json,
+        encoding="utf-8",
+    )
+    (EVIDENCE_DIR / "policy-sensitivity.txt").write_text(
+        sensitivity_text,
+        encoding="utf-8",
+    )
+    sensitivity_transcript = f"$ {SENSITIVITY_TEXT_COMMAND}\n{sensitivity_text}"
+    render_terminal_png(
+        transcript=sensitivity_transcript,
+        title=SENSITIVITY_PNG_TITLE,
+        path=ASSET_DIR / "policy-sensitivity-cli.png",
+    )
+    write_policy_sensitivity_svg(
+        sensitivity_document,
+        ASSET_DIR / "policy-sensitivity-impact.svg",
     )
 
     sweep_output = _run(
@@ -283,7 +335,7 @@ def _write_cli_evidence() -> list[_SweepRow]:
         )
     if [row.length for row in rows] != list(range(8, 33)):
         raise RuntimeError("CLI sweep did not return the exact inclusive range 8..32")
-    return rows
+    return rows, sensitivity_document
 
 
 def _write_complexity_evidence() -> dict[str, object]:
@@ -1189,6 +1241,14 @@ def _artifact_assertions() -> dict[str, list[str]]:
             "exact product-vector, materialized-cell, and transition counts",
             "balanced and skewed policies are directly comparable",
         ],
+        "docs/assets/policy-sensitivity-cli.png": [
+            "rendered from the real deterministic sensitivity transcript",
+            "candidate and entropy output explicitly absent",
+        ],
+        "docs/assets/policy-sensitivity-impact.svg": [
+            "rendered from the exact canonical sensitivity JSON",
+            "one-step non-additive claim boundary is explicit",
+        ],
         "docs/assets/quality-gate.png": [
             "rendered from normalized real gate transcript",
             "all commands exited zero",
@@ -1242,6 +1302,14 @@ def _artifact_assertions() -> dict[str, list[str]]:
         "docs/evidence/dp-complexity-profile.txt": [
             "real concise profiler command output",
             "no timing, hardware, memory, entropy, or candidate claim",
+        ],
+        "docs/evidence/policy-sensitivity.json": [
+            "real canonical CLI JSON",
+            "exact baseline, relaxed totals, additions, and reduced fractions",
+        ],
+        "docs/evidence/policy-sensitivity.txt": [
+            "real deterministic CLI text",
+            "one-step scope and non-additivity warning retained",
         ],
         "docs/evidence/quality-gate.txt": [
             "real normalized command output",
@@ -1317,6 +1385,7 @@ def _manifest(
     architecture_verified: bool,
     sampling_verified: bool,
     complexity_report: dict[str, object],
+    sensitivity_report: dict[str, object],
 ) -> dict[str, object]:
     complexity_cases = cast(list[dict[str, object]], complexity_report["cases"])
     return {
@@ -1351,6 +1420,13 @@ def _manifest(
                 "report_schema_version": complexity_report["schema_version"],
                 "scenario_ids": [case["case_id"] for case in complexity_cases],
                 "text_source_command": PROFILE_TEXT_COMMAND,
+            },
+            "policy_sensitivity": {
+                "baseline_valid": sensitivity_report["baseline_valid"],
+                "claim_boundary": sensitivity_report["claim_boundary"],
+                "json_source_command": SENSITIVITY_JSON_COMMAND,
+                "rows": len(cast(list[object], sensitivity_report["rows"])),
+                "text_source_command": SENSITIVITY_TEXT_COMMAND,
             },
             "quality_gate": {
                 "all_passed": True,
@@ -1420,7 +1496,7 @@ def main() -> int:
     _write_distribution_evidence()
     complexity_report = _write_complexity_evidence()
 
-    sweep_rows = _write_cli_evidence()
+    sweep_rows, sensitivity_report = _write_cli_evidence()
     _render_sweep_chart(sweep_rows)
     capture = _capture_web_evidence()
 
@@ -1431,6 +1507,7 @@ def main() -> int:
             architecture_verified=architecture_verified,
             sampling_verified=sampling_verified,
             complexity_report=complexity_report,
+            sensitivity_report=sensitivity_report,
         )
     )
 
@@ -1443,6 +1520,7 @@ def main() -> int:
                 architecture_verified=architecture_verified,
                 sampling_verified=sampling_verified,
                 complexity_report=complexity_report,
+                sensitivity_report=sensitivity_report,
             )
         )
         second_gate = _run_quality_gate()
