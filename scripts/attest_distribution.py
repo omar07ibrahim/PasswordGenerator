@@ -129,12 +129,12 @@ _DEV_DEPENDENCIES = (
     "build==1.5.0",
     "matplotlib==3.11.1",
     "mypy==2.3.0",
-    "numpy==2.3.5",
+    "numpy==2.4.6",
     "Pillow==12.3.0",
-    "playwright==1.61.0",
+    "playwright==1.62.0",
     "pytest==9.1.1",
     "pytest-cov==7.1.0",
-    "ruff==0.16.0",
+    "ruff==0.16.1",
     "setuptools==83.0.0",
 )
 _SETUP_CFG = b"[egg_info]\ntag_build = \ntag_date = 0\n\n"
