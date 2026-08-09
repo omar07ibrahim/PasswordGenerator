@@ -68,12 +68,8 @@ SWEEP_COMMAND = (
     "password-policy-lab sweep --start-length 8 --end-length 32 --format csv"
 )
 INSPECT_COMMAND = "password-policy-lab inspect --length 20 --format text"
-SENSITIVITY_JSON_COMMAND = (
-    "password-policy-lab sensitivity --length 20 --format json"
-)
-SENSITIVITY_TEXT_COMMAND = (
-    "password-policy-lab sensitivity --length 20 --format text"
-)
+SENSITIVITY_JSON_COMMAND = "password-policy-lab sensitivity --length 20 --format json"
+SENSITIVITY_TEXT_COMMAND = "password-policy-lab sensitivity --length 20 --format text"
 SENSITIVITY_PNG_TITLE = "Exact one-step policy sensitivity · length 20"
 PROFILE_JSON_COMMAND = (
     "PYTHONPATH=src python scripts/profile_complexity.py --format json"

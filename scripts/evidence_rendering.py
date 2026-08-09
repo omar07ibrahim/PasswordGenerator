@@ -1057,7 +1057,8 @@ def _validated_policy_sensitivity(
         label="policy sensitivity document",
     )
     if (
-        document["sensitivity_schema_version"] != 1
+        type(document["sensitivity_schema_version"]) is not int
+        or document["sensitivity_schema_version"] != 1
         or document["analysis"] != "one-step-class-minimum-relaxation-v1"
         or document["operation"] != "sensitivity"
         or document["profile"] != "visible-ascii-v1"
