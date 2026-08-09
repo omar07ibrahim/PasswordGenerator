@@ -1135,6 +1135,7 @@ def _validated_policy_sensitivity(
         added = _sensitivity_decimal(
             row["added_if_relaxed"],
             label=f"rows[{index}].added_if_relaxed",
+            minimum=1,
         )
         fraction = _profile_mapping(
             row["baseline_share_of_relaxed"],
@@ -1200,7 +1201,8 @@ def render_policy_sensitivity_svg(report: object) -> str:
     <rect x="350" y="{y}" width="{bar_width}" height="32" rx="16" fill="{TEAL}"/>
     <text x="1095" y="{y + 24}" class="node-code">+{row.added_if_relaxed:,}</text>
     <text x="1095" y="{y + 53}" class="node-detail">relaxed total {row.relaxed_valid:,}</text>
-    <text x="1095" y="{y + 78}" class="caption">baseline share {row.fraction_numerator}/{row.fraction_denominator}</text>
+    <text x="1095" y="{y + 78}" class="caption">baseline numerator {row.fraction_numerator}</text>
+    <text x="1095" y="{y + 101}" class="caption">relaxed denominator {row.fraction_denominator}</text>
   </g>"""
         )
 
