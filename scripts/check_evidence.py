@@ -854,9 +854,7 @@ def _expected_sensitivity_text(report: PolicySensitivity) -> str:
                 f"{row.baseline_fraction_denominator}",
             )
         )
-    return "
-".join(lines) + "
-"
+    return "\n".join(lines) + "\n"
 
 
 def _expected_sensitivity_evidence() -> tuple[dict[str, object], str, str]:
@@ -869,8 +867,7 @@ def _expected_sensitivity_evidence() -> tuple[dict[str, object], str, str]:
         "profile": VISIBLE_ASCII_PROFILE,
         **mapping,
     }
-    json_text = json.dumps(document, ensure_ascii=True, indent=2) + "
-"
+    json_text = json.dumps(document, ensure_ascii=True, indent=2) + "\n"
     return document, json_text, _expected_sensitivity_text(report)
 
 
