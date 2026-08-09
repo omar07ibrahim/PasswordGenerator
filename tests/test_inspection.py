@@ -9,6 +9,7 @@ from password_policy_lab import (
     CharacterClass,
     PasswordPolicy,
     PasswordSpace,
+    analyze_policy_sensitivity,
     inspect_policy,
     inspect_space,
     policy_sha256,
@@ -18,6 +19,8 @@ from password_policy_lab.inspection import (
     POLICY_FINGERPRINT_SCHEMA_VERSION,
     RANK_ORDER_VERSION,
     REPORT_SCHEMA_VERSION,
+    SENSITIVITY_ANALYSIS,
+    SENSITIVITY_SCHEMA_VERSION,
 )
 from password_policy_lab.space import MAX_DP_CELLS, MAX_DP_TRANSITIONS
 
@@ -193,3 +196,105 @@ def test_inspection_entry_points_require_exact_password_policies(
     assert callable(function)
     with pytest.raises(TypeError, match="PasswordPolicy"):
         function("not-a-policy")
+
+
+def test_one_step_sensitivity_is_exact_ordered_and_non_additive() -> None:
+    policy = PasswordPolicy(
+        3,
+        (
+            CharacterClass("lower", "a", 1),
+            CharacterClass("upper", "B", 1),
+            CharacterClass("digits", "1", 0),
+        ),
+    )
+    lower_relaxed = PasswordPolicy(
+        3,
+        (
+            CharacterClass("lower", "a", 0),
+            CharacterClass("upper", "B", 1),
+            CharacterClass("digits", "1", 0),
+        ),
+    )
+    upper_relaxed = PasswordPolicy(
+        3,
+        (
+            CharacterClass("lower", "a", 1),
+            CharacterClass("upper", "B", 0),
+            CharacterClass("digits", "1", 0),
+        ),
+    )
+
+    report = analyze_policy_sensitivity(policy)
+
+    assert report.policy is policy
+    assert report.policy_sha256 == policy_sha256(policy)
+    assert report.baseline_valid == 12
+    assert [row.class_name for row in report.rows] == [
+        "lower",
+        "upper",
+        "digits",
+    ]
+    assert report.to_mapping() == {
+        "sensitivity_schema_version": SENSITIVITY_SCHEMA_VERSION,
+        "analysis": SENSITIVITY_ANALYSIS,
+        "rank_order_version": RANK_ORDER_VERSION,
+        "policy_sha256": policy_sha256(policy),
+        "policy": {
+            "length": 3,
+            "alphabet_size": 3,
+            "class_minima": {"lower": 1, "upper": 1, "digits": 0},
+        },
+        "baseline_valid": "12",
+        "rows": [
+            {
+                "class_name": "lower",
+                "original_minimum": 1,
+                "relaxation_applied": True,
+                "relaxed_minimum": 0,
+                "relaxed_policy_sha256": policy_sha256(lower_relaxed),
+                "relaxed_valid": "19",
+                "added_if_relaxed": "7",
+                "baseline_share_of_relaxed": {
+                    "numerator": "12",
+                    "denominator": "19",
+                },
+            },
+            {
+                "class_name": "upper",
+                "original_minimum": 1,
+                "relaxation_applied": True,
+                "relaxed_minimum": 0,
+                "relaxed_policy_sha256": policy_sha256(upper_relaxed),
+                "relaxed_valid": "19",
+                "added_if_relaxed": "7",
+                "baseline_share_of_relaxed": {
+                    "numerator": "12",
+                    "denominator": "19",
+                },
+            },
+            {
+                "class_name": "digits",
+                "original_minimum": 0,
+                "relaxation_applied": False,
+                "relaxed_minimum": 0,
+                "relaxed_policy_sha256": policy_sha256(policy),
+                "relaxed_valid": "12",
+                "added_if_relaxed": "0",
+                "baseline_share_of_relaxed": {
+                    "numerator": "1",
+                    "denominator": "1",
+                },
+            },
+        ],
+        "claim_boundary": {
+            "one_step_only": True,
+            "effects_are_not_additive": True,
+            "contains_candidate": False,
+            "samples_entropy": False,
+        },
+    }
+
+
+def test_sensitivity_requires_an_exact_policy() -> None:
+    with pytest.raises(TypeError, match="PasswordPolicy"):
+        analyze_policy_sensitivity("not-a-policy")  # type: ignore[arg-type]

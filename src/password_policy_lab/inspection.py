@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from math import gcd, prod
 
 from password_policy_lab.policy import PasswordPolicy
@@ -17,6 +17,8 @@ from password_policy_lab.space import (
 REPORT_SCHEMA_VERSION = 1
 POLICY_FINGERPRINT_SCHEMA_VERSION = 1
 RANK_ORDER_VERSION = "class-symbol-lexicographic-v1"
+SENSITIVITY_SCHEMA_VERSION = 1
+SENSITIVITY_ANALYSIS = "one-step-class-minimum-relaxation-v1"
 
 
 def policy_sha256(policy: PasswordPolicy) -> str:
@@ -153,4 +155,123 @@ def inspect_space(space: PasswordSpace) -> StateSpaceInspection:
         deficit_vectors_upper_bound_per_layer=deficit_vectors,
         dp_cells_upper_bound=cells,
         dp_transitions_upper_bound=len(policy.classes) * cells,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class MinimumRelaxation:
+    """Exact effect of relaxing one class minimum by at most one."""
+
+    class_name: str
+    original_minimum: int
+    relaxation_applied: bool
+    relaxed_minimum: int
+    relaxed_policy_sha256: str
+    relaxed_valid: int
+    added_if_relaxed: int
+    baseline_fraction_numerator: int
+    baseline_fraction_denominator: int
+
+    def to_mapping(self) -> dict[str, object]:
+        """Return one stable JSON-safe sensitivity row."""
+
+        return {
+            "class_name": self.class_name,
+            "original_minimum": self.original_minimum,
+            "relaxation_applied": self.relaxation_applied,
+            "relaxed_minimum": self.relaxed_minimum,
+            "relaxed_policy_sha256": self.relaxed_policy_sha256,
+            "relaxed_valid": str(self.relaxed_valid),
+            "added_if_relaxed": str(self.added_if_relaxed),
+            "baseline_share_of_relaxed": {
+                "numerator": str(self.baseline_fraction_numerator),
+                "denominator": str(self.baseline_fraction_denominator),
+            },
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class PolicySensitivity:
+    """One exact, entropy-free one-step minimum sensitivity report."""
+
+    policy: PasswordPolicy
+    policy_sha256: str
+    baseline_valid: int
+    rows: tuple[MinimumRelaxation, ...]
+
+    def to_mapping(self) -> dict[str, object]:
+        """Return the stable sensitivity report contract."""
+
+        return {
+            "sensitivity_schema_version": SENSITIVITY_SCHEMA_VERSION,
+            "analysis": SENSITIVITY_ANALYSIS,
+            "rank_order_version": RANK_ORDER_VERSION,
+            "policy_sha256": self.policy_sha256,
+            "policy": {
+                "length": self.policy.length,
+                "alphabet_size": len(self.policy.alphabet),
+                "class_minima": {
+                    character_class.name: character_class.minimum
+                    for character_class in self.policy.classes
+                },
+            },
+            "baseline_valid": str(self.baseline_valid),
+            "rows": [row.to_mapping() for row in self.rows],
+            "claim_boundary": {
+                "one_step_only": True,
+                "effects_are_not_additive": True,
+                "contains_candidate": False,
+                "samples_entropy": False,
+            },
+        }
+
+
+def analyze_policy_sensitivity(policy: PasswordPolicy) -> PolicySensitivity:
+    """Measure each class minimum's exact one-step marginal effect."""
+
+    if type(policy) is not PasswordPolicy:
+        raise TypeError("policy must be a PasswordPolicy")
+
+    baseline_valid = PasswordSpace(policy).total
+    baseline_sha256 = policy_sha256(policy)
+    rows: list[MinimumRelaxation] = []
+    for class_index, character_class in enumerate(policy.classes):
+        relaxed_minimum = max(0, character_class.minimum - 1)
+        relaxation_applied = relaxed_minimum != character_class.minimum
+        if relaxation_applied:
+            relaxed_policy = PasswordPolicy(
+                length=policy.length,
+                classes=tuple(
+                    replace(candidate, minimum=relaxed_minimum)
+                    if index == class_index
+                    else candidate
+                    for index, candidate in enumerate(policy.classes)
+                ),
+            )
+            relaxed_valid = PasswordSpace(relaxed_policy).total
+            relaxed_sha256 = policy_sha256(relaxed_policy)
+        else:
+            relaxed_valid = baseline_valid
+            relaxed_sha256 = baseline_sha256
+
+        divisor = gcd(baseline_valid, relaxed_valid)
+        rows.append(
+            MinimumRelaxation(
+                class_name=character_class.name,
+                original_minimum=character_class.minimum,
+                relaxation_applied=relaxation_applied,
+                relaxed_minimum=relaxed_minimum,
+                relaxed_policy_sha256=relaxed_sha256,
+                relaxed_valid=relaxed_valid,
+                added_if_relaxed=relaxed_valid - baseline_valid,
+                baseline_fraction_numerator=baseline_valid // divisor,
+                baseline_fraction_denominator=relaxed_valid // divisor,
+            )
+        )
+
+    return PolicySensitivity(
+        policy=policy,
+        policy_sha256=baseline_sha256,
+        baseline_valid=baseline_valid,
+        rows=tuple(rows),
     )
