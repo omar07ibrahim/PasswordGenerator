@@ -48,6 +48,22 @@ class _Checker(Protocol):
 
     def _expected_inspection(self, report: StateSpaceInspection) -> str: ...
 
+    def _expected_sensitivity_evidence(
+        self,
+    ) -> tuple[dict[str, object], str, str]: ...
+
+    def _validate_sensitivity_evidence(
+        self,
+        textual: dict[str, str],
+    ) -> dict[str, object]: ...
+
+    def _validate_sensitivity_renderings(
+        self,
+        root: Path,
+        report: dict[str, object],
+        transcript_text: str,
+    ) -> None: ...
+
     def _load_json(
         self,
         path: Path,
@@ -300,6 +316,73 @@ def test_manifest_loader_rejects_duplicates_and_noncanonical_json(
 
 def _canonical_json(document: dict[str, object]) -> str:
     return json.dumps(document, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+
+
+def test_policy_sensitivity_evidence_is_exact_and_rejects_count_drift() -> None:
+    document, json_text, text = check_evidence._expected_sensitivity_evidence()
+    textual = {
+        "docs/evidence/policy-sensitivity.json": json_text,
+        "docs/evidence/policy-sensitivity.txt": text,
+    }
+
+    assert check_evidence._validate_sensitivity_evidence(textual) == document
+    assert document["baseline_valid"] == (
+        "2585908648140078948280078326668093030400"
+    )
+    rows = cast(list[dict[str, object]], document["rows"])
+    assert [row["class_name"] for row in rows] == [
+        "lower",
+        "upper",
+        "digits",
+        "punctuation",
+    ]
+
+    stale = copy.deepcopy(document)
+    stale_rows = cast(list[dict[str, object]], stale["rows"])
+    stale_rows[0]["added_if_relaxed"] = "1"
+    stale_json = json.dumps(stale, ensure_ascii=True, indent=2) + "\n"
+    with pytest.raises(
+        check_evidence.EvidenceValidationError,
+        match="does not match the exact core",
+    ):
+        check_evidence._validate_sensitivity_evidence(
+            {
+                "docs/evidence/policy-sensitivity.json": stale_json,
+                "docs/evidence/policy-sensitivity.txt": text,
+            }
+        )
+
+
+def test_policy_sensitivity_artifacts_are_source_bound_and_reviewable(
+    tmp_path: Path,
+) -> None:
+    root = Path(__file__).resolve().parents[1]
+    report, _, text = check_evidence._expected_sensitivity_evidence()
+    relatives = (
+        "docs/assets/policy-sensitivity-cli.png",
+        "docs/assets/policy-sensitivity-impact.svg",
+    )
+    assert {
+        *relatives,
+        "docs/evidence/policy-sensitivity.json",
+        "docs/evidence/policy-sensitivity.txt",
+    }.issubset(check_evidence.EXPECTED_ARTIFACTS)
+    for relative in relatives:
+        destination = tmp_path / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes((root / relative).read_bytes())
+
+    check_evidence._validate_sensitivity_renderings(tmp_path, report, text)
+    svg = tmp_path / "docs/assets/policy-sensitivity-impact.svg"
+    svg.write_text(
+        svg.read_text(encoding="utf-8") + "<!-- drift -->",
+        encoding="utf-8",
+    )
+    with pytest.raises(
+        check_evidence.EvidenceValidationError,
+        match="stale against its pure renderer",
+    ):
+        check_evidence._validate_sensitivity_renderings(tmp_path, report, text)
 
 
 def test_complexity_profile_rebuild_has_exact_schema_and_invariants() -> None:
