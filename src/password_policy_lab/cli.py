@@ -16,7 +16,12 @@ from password_policy_lab.errors import PasswordPolicyError
 from password_policy_lab.inspection import (
     RANK_ORDER_VERSION,
     REPORT_SCHEMA_VERSION,
+    SENSITIVITY_ANALYSIS,
+    SENSITIVITY_SCHEMA_VERSION,
+    MinimumRelaxation,
+    PolicySensitivity,
     StateSpaceInspection,
+    analyze_policy_sensitivity,
     inspect_policy,
     policy_sha256,
 )
@@ -168,6 +173,14 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_policy_options(inspect_parser, include_length=True)
     _add_format(inspect_parser, choices=("text", "json"))
 
+    sensitivity_parser = subparsers.add_parser(
+        "sensitivity",
+        help="measure each class minimum's exact one-step marginal effect",
+        allow_abbrev=False,
+    )
+    _add_policy_options(sensitivity_parser, include_length=True)
+    _add_format(sensitivity_parser, choices=("text", "json", "csv"))
+
     sweep_parser = subparsers.add_parser(
         "sweep",
         help="report an inclusive ascending length range",
@@ -265,6 +278,125 @@ def _inspection_text(report: StateSpaceInspection) -> str:
         )
     )
     return "\n".join(lines) + "\n"
+
+
+_SENSITIVITY_COLUMNS = (
+    "sensitivity_schema_version",
+    "analysis",
+    "operation",
+    "rank_order_version",
+    "profile",
+    "policy_sha256",
+    "length",
+    "alphabet_size",
+    "baseline_valid",
+    "class_name",
+    "original_minimum",
+    "relaxation_applied",
+    "relaxed_minimum",
+    "relaxed_policy_sha256",
+    "relaxed_valid",
+    "added_if_relaxed",
+    "baseline_fraction_numerator",
+    "baseline_fraction_denominator",
+    "one_step_only",
+    "effects_are_not_additive",
+    "contains_candidate",
+    "samples_entropy",
+)
+
+
+def _sensitivity_row(
+    report: PolicySensitivity,
+    row: MinimumRelaxation,
+) -> tuple[str, ...]:
+    return (
+        str(SENSITIVITY_SCHEMA_VERSION),
+        SENSITIVITY_ANALYSIS,
+        "sensitivity",
+        RANK_ORDER_VERSION,
+        VISIBLE_ASCII_PROFILE,
+        report.policy_sha256,
+        str(report.policy.length),
+        str(len(report.policy.alphabet)),
+        str(report.baseline_valid),
+        row.class_name,
+        str(row.original_minimum),
+        str(row.relaxation_applied).lower(),
+        str(row.relaxed_minimum),
+        row.relaxed_policy_sha256,
+        str(row.relaxed_valid),
+        str(row.added_if_relaxed),
+        str(row.baseline_fraction_numerator),
+        str(row.baseline_fraction_denominator),
+        "true",
+        "true",
+        "false",
+        "false",
+    )
+
+
+def _sensitivity_csv(report: PolicySensitivity) -> str:
+    lines = [",".join(_SENSITIVITY_COLUMNS)]
+    lines.extend(
+        ",".join(_sensitivity_row(report, row)) for row in report.rows
+    )
+    return "\n".join(lines) + "\n"
+
+
+def _sensitivity_text(report: PolicySensitivity) -> str:
+    policy = report.policy
+    lines = [
+        f"sensitivity_schema_version: {SENSITIVITY_SCHEMA_VERSION}",
+        f"analysis: {SENSITIVITY_ANALYSIS}",
+        "operation: sensitivity",
+        f"rank_order_version: {RANK_ORDER_VERSION}",
+        f"profile: {VISIBLE_ASCII_PROFILE}",
+        f"policy_sha256: {report.policy_sha256}",
+        f"length: {policy.length}",
+        f"alphabet_size: {len(policy.alphabet)}",
+        f"baseline_valid: {report.baseline_valid}",
+        "claim_boundary.one_step_only: true",
+        "claim_boundary.effects_are_not_additive: true",
+        "claim_boundary.contains_candidate: false",
+        "claim_boundary.samples_entropy: false",
+    ]
+    for row in report.rows:
+        prefix = f"class.{row.class_name}"
+        lines.extend(
+            (
+                f"{prefix}.minimum: {row.original_minimum} -> {row.relaxed_minimum}",
+                f"{prefix}.relaxation_applied: "
+                f"{str(row.relaxation_applied).lower()}",
+                f"{prefix}.relaxed_policy_sha256: {row.relaxed_policy_sha256}",
+                f"{prefix}.relaxed_valid: {row.relaxed_valid}",
+                f"{prefix}.added_if_relaxed: {row.added_if_relaxed}",
+                f"{prefix}.baseline_share_of_relaxed: "
+                f"{row.baseline_fraction_numerator}/"
+                f"{row.baseline_fraction_denominator}",
+            )
+        )
+    return "\n".join(lines) + "\n"
+
+
+def _render_sensitivity(
+    report: PolicySensitivity,
+    output_format: str,
+) -> str:
+    if output_format == "json":
+        mapping = report.to_mapping()
+        del mapping["sensitivity_schema_version"]
+        return _json_document(
+            {
+                "sensitivity_schema_version": SENSITIVITY_SCHEMA_VERSION,
+                "operation": "sensitivity",
+                "profile": VISIBLE_ASCII_PROFILE,
+                **mapping,
+            }
+        )
+    if output_format == "csv":
+        return _sensitivity_csv(report)
+    return _sensitivity_text(report)
 
 
 def _sweep_row(report: StateSpaceInspection) -> dict[str, str | int]:
@@ -473,6 +605,10 @@ def _execute(
 
     if command == "inspect":
         return _render_inspection(inspect_policy(_policy(arguments)), output_format)
+
+    if command == "sensitivity":
+        report = analyze_policy_sensitivity(_policy(arguments))
+        return _render_sensitivity(report, output_format)
 
     if command == "sweep":
         start_length = cast(int, arguments.start_length)

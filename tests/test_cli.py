@@ -96,6 +96,7 @@ def test_every_cli_operation_is_entropy_free(
     )
     invocations = [
         (["inspect", "--length", "4"], ""),
+        (["sensitivity", "--length", "4"], ""),
         (
             [
                 "sweep",
@@ -132,6 +133,85 @@ def test_every_cli_operation_is_entropy_free(
         status, _, error = _invoke(arguments, candidate_input=candidate_input)
         assert status == 0
         assert error == ""
+
+
+def test_sensitivity_json_matches_independent_exact_counts() -> None:
+    arguments = ["sensitivity", "--length", "4", "--format", "json"]
+
+    first = _invoke(arguments, stdin=_UnreadableInput())
+    second = _invoke(arguments, stdin=_UnreadableInput())
+    payload = json.loads(first[1])
+    baseline = PasswordSpace(visible_ascii_policy(4)).total
+    relaxed_minima = (
+        (0, 1, 1, 1),
+        (1, 0, 1, 1),
+        (1, 1, 0, 1),
+        (1, 1, 1, 0),
+    )
+
+    assert first == second
+    assert first[0] == 0
+    assert first[2] == ""
+    assert payload["sensitivity_schema_version"] == 1
+    assert payload["analysis"] == "one-step-class-minimum-relaxation-v1"
+    assert payload["operation"] == "sensitivity"
+    assert payload["profile"] == "visible-ascii-v1"
+    assert payload["baseline_valid"] == str(baseline)
+    assert [row["class_name"] for row in payload["rows"]] == [
+        "lower",
+        "upper",
+        "digits",
+        "punctuation",
+    ]
+    for row, minima in zip(payload["rows"], relaxed_minima, strict=True):
+        relaxed = PasswordSpace(visible_ascii_policy(4, minima)).total
+        assert row["relaxation_applied"] is True
+        assert row["relaxed_minimum"] == 0
+        assert row["relaxed_valid"] == str(relaxed)
+        assert row["added_if_relaxed"] == str(relaxed - baseline)
+    assert payload["claim_boundary"] == {
+        "one_step_only": True,
+        "effects_are_not_additive": True,
+        "contains_candidate": False,
+        "samples_entropy": False,
+    }
+    assert "timestamp" not in first[1]
+    assert "/home/" not in first[1]
+
+
+@pytest.mark.parametrize("output_format", ["text", "csv"])
+def test_sensitivity_reader_formats_expose_scope_and_zero_minimum(
+    output_format: str,
+) -> None:
+    status, output, error = _invoke(
+        [
+            "sensitivity",
+            "--length",
+            "4",
+            "--min-digits",
+            "0",
+            "--format",
+            output_format,
+        ],
+        stdin=_UnreadableInput(),
+    )
+
+    assert status == 0
+    assert error == ""
+    if output_format == "csv":
+        lines = output.splitlines()
+        assert lines[0].startswith("sensitivity_schema_version,analysis,operation")
+        assert len(lines) == 5
+        assert all(len(line.split(",")) == 22 for line in lines)
+        assert any(",digits,0,false,0," in line for line in lines[1:])
+    else:
+        assert "operation: sensitivity" in output
+        assert "claim_boundary.effects_are_not_additive: true" in output
+        assert "claim_boundary.contains_candidate: false" in output
+        assert "class.digits.minimum: 0 -> 0" in output
+        assert "class.digits.relaxation_applied: false" in output
+        assert "class.digits.added_if_relaxed: 0" in output
+        assert "class.digits.baseline_share_of_relaxed: 1/1" in output
 
 
 def test_inspect_text_contains_exact_reader_facing_fields() -> None:
@@ -253,6 +333,8 @@ def test_invalid_policy_ranges_fail_atomically(arguments: list[str]) -> None:
         ["inspect", "--length", "9999"],
         ["inspect", "--length", "8", "--min-lower=-1"],
         ["inspect", "--length", "8", "--format", "yaml"],
+        ["sensitivity", "--length", "8", "--min-lower", "1", "--min-lower", "0"],
+        ["sensitivity", "--length", "8", "--format", "yaml"],
         ["unknown"],
     ],
 )
