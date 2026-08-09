@@ -168,35 +168,109 @@ jobs:
           git diff --exit-code -- .
           test -z "$(git status --short --untracked-files=all)"
   
-      - name: Verify browser drift is reviewable
+      - name: Verify regenerated evidence drift is reviewable
         id: drift_inventory
         if: ${{ always() && steps.recapture.outcome == 'success' && steps.byte_check.outcome == 'failure' }}
         run: |
-          actual="$(git diff --name-only -- | LC_ALL=C sort)"
-          expected="$(
-            printf "%s\n" \
-              "docs/assets/web-home-mobile.png" \
-              "docs/assets/web-home.png" \
-              "docs/assets/web-invalid-length.png" \
-              "docs/assets/web-validation-demo.gif" \
-              "docs/evidence/manifest.json" \
-              "docs/evidence/web-validation-reference.png"
-          )"
-          test "$actual" = "$expected"
-          test -z "$(git ls-files --others --exclude-standard)"
-  
-      - name: Preserve browser evidence drift for review
+          python - <<'PY'
+          from __future__ import annotations
+
+          import json
+          import subprocess
+          from pathlib import Path, PurePosixPath
+
+          manifest_path = Path("docs/evidence/manifest.json")
+          manifest_name = manifest_path.as_posix()
+
+          try:
+              document = json.loads(manifest_path.read_text(encoding="utf-8"))
+          except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+              raise SystemExit("regenerated evidence manifest is invalid") from exc
+          if type(document) is not dict:
+              raise SystemExit("regenerated evidence manifest root is invalid")
+          records = document.get("artifacts")
+          if type(records) is not list or not records:
+              raise SystemExit("regenerated evidence manifest has no artifacts")
+
+          artifact_paths: set[str] = set()
+          for record in records:
+              if type(record) is not dict or type(record.get("path")) is not str:
+                  raise SystemExit("regenerated evidence manifest path is invalid")
+              value = record["path"]
+              pure = PurePosixPath(value)
+              if (
+                  value != pure.as_posix()
+                  or pure.is_absolute()
+                  or any(part in {"", ".", ".."} for part in pure.parts)
+                  or len(pure.parts) < 3
+                  or tuple(pure.parts[:2])
+                  not in {("docs", "assets"), ("docs", "evidence")}
+                  or value == manifest_name
+                  or value in artifact_paths
+              ):
+                  raise SystemExit("regenerated evidence manifest path is unsafe")
+              candidate = Path(*pure.parts)
+              if candidate.is_symlink() or not candidate.is_file():
+                  raise SystemExit("regenerated evidence artifact is not a regular file")
+              artifact_paths.add(value)
+
+          allowed_paths = artifact_paths | {manifest_name}
+          candidate_paths: set[str] = set()
+          for directory_name in ("docs/assets", "docs/evidence"):
+              directory = Path(directory_name)
+              if directory.is_symlink() or not directory.is_dir():
+                  raise SystemExit("generated evidence directory is invalid")
+              for candidate in directory.rglob("*"):
+                  if candidate.is_symlink():
+                      raise SystemExit("generated evidence candidate contains a symlink")
+                  if candidate.is_dir():
+                      continue
+                  if not candidate.is_file():
+                      raise SystemExit(
+                          "generated evidence candidate contains a non-file"
+                      )
+                  candidate_paths.add(candidate.as_posix())
+          if candidate_paths != allowed_paths:
+              raise SystemExit(
+                  "generated evidence candidate does not match the manifest"
+              )
+
+          def git_paths(*arguments: str) -> set[str]:
+              result = subprocess.run(
+                  ("git", *arguments),
+                  check=True,
+                  stdout=subprocess.PIPE,
+                  stderr=subprocess.PIPE,
+              )
+              payload = result.stdout
+              if payload and not payload.endswith(b"\0"):
+                  raise SystemExit("Git returned an invalid path inventory")
+              try:
+                  return {
+                      item.decode("utf-8")
+                      for item in payload.split(b"\0")[:-1]
+                  }
+              except UnicodeError as exc:
+                  raise SystemExit("Git returned a non-UTF-8 path") from exc
+
+          dirty_paths = git_paths("diff", "--name-only", "-z", "--")
+          dirty_paths |= git_paths("diff", "--cached", "--name-only", "-z", "--")
+          if not dirty_paths:
+              raise SystemExit("evidence drift inventory is empty")
+          if not dirty_paths.issubset(allowed_paths):
+              raise SystemExit("tracked drift escapes the evidence candidate set")
+          if git_paths("ls-files", "--others", "--exclude-standard", "-z", "--"):
+              raise SystemExit("evidence regeneration created untracked files")
+          PY
+
+      - name: Preserve the complete generated evidence candidate for review
         if: ${{ always() && steps.drift_inventory.outcome == 'success' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: browser-evidence-drift-${{ github.run_id }}
+          name: generated-evidence-candidate-${{ github.run_id }}
           path: |
-            docs/assets/web-home-mobile.png
-            docs/assets/web-home.png
-            docs/assets/web-invalid-length.png
-            docs/assets/web-validation-demo.gif
-            docs/evidence/manifest.json
-            docs/evidence/web-validation-reference.png
+            docs/assets/
+            docs/evidence/
           if-no-files-found: error
           retention-days: 1
           compression-level: 0
