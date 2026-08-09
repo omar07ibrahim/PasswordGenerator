@@ -29,11 +29,11 @@
         "rendered from the real distribution attestation transcript",
         "canonical wheel, sdist rebuild, and installed smoke passed"
       ],
-      "bytes": 64519,
+      "bytes": 64764,
       "height": 466,
       "media_type": "image/png",
       "path": "docs/assets/distribution-check.png",
-      "sha256": "df09560f9baa4b2da030597859d174d5f297a4b79afe1032392434c72e9a0ebb",
+      "sha256": "798a1faa56e02199dea7fd124a68289cd9e859ce8ee865dc62d3c67ce37db0df",
       "width": 1600
     },
     {
@@ -45,7 +45,7 @@
       "height": 830,
       "media_type": "image/svg+xml",
       "path": "docs/assets/distribution-contract.svg",
-      "sha256": "37eeac7f88fd0d3dd844c1984a8d69cdaf707f7ae5f3229889cb6dafe0d6656d",
+      "sha256": "3052222b9bccaa1ce8f4caa8fba126dce3d9f9e1b79feafcec03de38fec260c7",
       "width": 1960
     },
     {
@@ -89,11 +89,11 @@
         "rendered from normalized real gate transcript",
         "all commands exited zero"
       ],
-      "bytes": 146498,
+      "bytes": 146744,
       "height": 1276,
       "media_type": "image/png",
       "path": "docs/assets/quality-gate.png",
-      "sha256": "48fa53a3b0fc7736433e304898164aa6ee2c9afdd38e81d0c7b392590a96d9db",
+      "sha256": "2593bec5a192f0bea9e6eb6c1456eec9c207f5993aa16bf78746922a783ecbd1",
       "width": 1600
     },
     {
@@ -137,11 +137,11 @@
         "real Waitress GET response",
         "390 pixel viewport without horizontal overflow"
       ],
-      "bytes": 60693,
+      "bytes": 60489,
       "height": 844,
       "media_type": "image/png",
       "path": "docs/assets/web-home-mobile.png",
-      "sha256": "d49f0b67f0ee682077674effd4ba09bcf1230b78b0c98016f563bb14fcef9310",
+      "sha256": "dbd34d296a2a9d1e590769c5732c13f23f46bc58a04d06f6a091f5b7b404b59d",
       "width": 390
     },
     {
@@ -149,11 +149,11 @@
         "real Waitress GET response",
         "exact policy details expanded"
       ],
-      "bytes": 470660,
+      "bytes": 470433,
       "height": 2418,
       "media_type": "image/png",
       "path": "docs/assets/web-home.png",
-      "sha256": "7e161bce87a67ee03684d097eefb2214b30a76722c9dcc7c5934966429a36506",
+      "sha256": "a1296f4c81c4c7109ae1eab79403df3a166b3d710c0af83a8b6e12fe6b173a76",
       "width": 1440
     },
     {
@@ -161,11 +161,11 @@
         "real Waitress POST response",
         "invalid length rejected with HTTP 400 before sampling"
       ],
-      "bytes": 410178,
-      "height": 1813,
+      "bytes": 408539,
+      "height": 1812,
       "media_type": "image/png",
       "path": "docs/assets/web-invalid-length.png",
-      "sha256": "9966d6cd501306954fdad8660ac8162b5cc40020f2a346b4bb6ac2289fe06c02",
+      "sha256": "d42d336b7569b796739763b586b8243f2ffd5cccb091c8ee89efa7c42ebd45f6",
       "width": 1440
     },
     {
@@ -175,12 +175,12 @@
         "plays once with no flashing sequence",
         "decoded frames preserve the complete browser viewport"
       ],
-      "bytes": 226898,
+      "bytes": 225893,
       "frames": 3,
       "height": 900,
       "media_type": "image/gif",
       "path": "docs/assets/web-validation-demo.gif",
-      "sha256": "d23a93a02ea3ead0ffaf6f70e7b2b11f0d85aca758ea693c6015e417e3a19831",
+      "sha256": "6ae41ed1d6ffc0f0994e85a1101ff1cd3c14fee8324363fd56b63c6e13449a61",
       "width": 1080
     },
     {
@@ -201,7 +201,7 @@
       "bytes": 16006,
       "media_type": "application/json",
       "path": "docs/evidence/distribution-attestation.json",
-      "sha256": "611ed7883b93a62d8c977342271519be13614263aa343b495f340e126b2e5b18"
+      "sha256": "a34928730fc6a8b26c9cb6143417eeaa541d4630435482540320ebd37dc886af"
     },
     {
       "assertions": [
@@ -211,7 +211,7 @@
       "bytes": 587,
       "media_type": "text/plain",
       "path": "docs/evidence/distribution-check.txt",
-      "sha256": "94b61d45db43b334efe8f574c94d69931bdb35aa709bec1205e112913285a92e"
+      "sha256": "c5cc1fd5cf7ac05d395a2219fd5bb54945b8c6c76093ca530582981b3ba357ad"
     },
     {
       "assertions": [
@@ -241,7 +241,7 @@
       "bytes": 1874,
       "media_type": "text/plain",
       "path": "docs/evidence/quality-gate.txt",
-      "sha256": "e5e71ef16b8c36026ae9af49698b7e2c67d0619592e9975efac26f3870653f53"
+      "sha256": "eee52828dee5ac948054bbb5dd022f9a089359e729d3806b55b1cc4ce357d5df"
     },
     {
       "assertions": [
@@ -259,11 +259,11 @@
         "vertical frame order GET 200 -> input 7 -> POST 400",
         "three 1080 by 900 frames without gutters or captions"
       ],
-      "bytes": 353316,
+      "bytes": 353305,
       "height": 2700,
       "media_type": "image/png",
       "path": "docs/evidence/web-validation-reference.png",
-      "sha256": "48d36965f54beb1c37ddfc1d5f1115ea176e7ad4b9ca3ebf67425a3c74eb6cf1",
+      "sha256": "786a77f806ccc8c3aebb17e9c73577ba00eaa7065abe8f989b45e9d51b9162d6",
       "width": 1080
     }
   ],
@@ -407,13 +407,13 @@
   },
   "generator": "scripts/generate_evidence.py",
   "runtime": {
-    "chromium": "149.0.7827.55",
+    "chromium": "151.0.7922.34",
     "flask": "3.1.3",
     "matplotlib": "3.11.1",
-    "numpy": "2.3.5",
+    "numpy": "2.4.6",
     "pillow": "12.3.0",
     "platform": "linux/x86_64",
-    "playwright": "1.61.0",
+    "playwright": "1.62.0",
     "python": "3.12.3",
     "waitress": "3.0.2"
   },
@@ -421,7 +421,7 @@
   "source_files": [
     {
       "path": ".github/workflows/verify.yml",
-      "sha256": "7ae04f1a485225ae022d8546fb3d8641df190579bf8b1c82d5344422a44111ad"
+      "sha256": "13e2f9a83f8412fe4d363c3d55223f62691fc4bd68789bed262c47a9dc6ebba0"
     },
     {
       "path": "MANIFEST.in",
@@ -445,11 +445,11 @@
     },
     {
       "path": "pyproject.toml",
-      "sha256": "1ca9cca3822404be961fae73a1cbecf5e9a7b2c112878d808b79b7c97466e7c9"
+      "sha256": "e96d011e3daf4a4bb12a05cf78022b41327adac62efa84ccc5db3ad25c4e8197"
     },
     {
       "path": "scripts/attest_distribution.py",
-      "sha256": "ffac30dec76abdded0320d6106942ab0096a30caa05ae05a201f23d814962e5a"
+      "sha256": "c38fc78ab2d6cdbd4c0c2acc6ea5d14229cf7826b760646aaae21a6c6b98296d"
     },
     {
       "path": "scripts/check_evidence.py",
@@ -457,7 +457,7 @@
     },
     {
       "path": "scripts/distribution_contract.py",
-      "sha256": "68c68447528202bc83303ce593b6d2a1c46090aadccfd16a5b1f8e469d3b6a97"
+      "sha256": "b1729fa0fd5c7808aaed12851dce76a3c1c7523aa5f9b435b8d5bfc6bc22570b"
     },
     {
       "path": "scripts/evidence_rendering.py",
