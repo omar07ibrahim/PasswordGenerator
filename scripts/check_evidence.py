@@ -1906,8 +1906,7 @@ def _validate_sensitivity_renderings(
     try:
         expected_svg = svg_renderer(report)
         expected_png = png_renderer(
-            transcript=f"$ {SENSITIVITY_TEXT_COMMAND}
-{transcript_text}",
+            transcript=f"$ {SENSITIVITY_TEXT_COMMAND}\n{transcript_text}",
             title=SENSITIVITY_PNG_TITLE,
         )
     except Exception as error:
