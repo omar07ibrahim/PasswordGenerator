@@ -1,7 +1,7 @@
 $ python scripts/attest_distribution.py
 distribution attestation: PASS (unofficial)
-source: 15 indexed inputs; sha256=bbb381861048c02e6abba8e72d4308cc2b1949474033d7ef57a422ce35394f10
-wheel: sha256=180895b87076139eed884486142a0dfb9ab5972593d2466adbca78de9d91c31b; two builds and sdist rebuild match
-sdist: sha256=24c3db57d23e930f4d832a6b37e9224d197871942e97105a5d117e638ee0ccbb; two canonical builds match (raw equality unclaimed)
+source: 15 indexed inputs; sha256=9f59263c22326a5d42ac5531e5b10f13c0043e7aaf0b87831384e7b96bc20ebd
+wheel: sha256=b3c577e6c851d29abf5a2602f7e24808361911ec83e790ce19324f0fa380c6b8; two builds and sdist rebuild match
+sdist: sha256=1b5c5670b69b41a5fef826754242cd493b8f61f6a54920e913d9a3e97be0d2a7; two canonical builds match (raw equality unclaimed)
 smoke: deterministic inspect passed; no password sampled
 boundaries: no license, signature, dependency-integrity, cross-platform, or arbitrary-archive claim

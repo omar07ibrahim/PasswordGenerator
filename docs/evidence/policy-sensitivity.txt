@@ -1,0 +1,37 @@
+sensitivity_schema_version: 1
+analysis: one-step-class-minimum-relaxation-v1
+operation: sensitivity
+rank_order_version: class-symbol-lexicographic-v1
+profile: visible-ascii-v1
+policy_sha256: sha256:734de6db732f235efeeb9c753e7449343fdb2cca7475a6bbf200806d498cb950
+length: 20
+alphabet_size: 94
+baseline_valid: 2585908648140078948280078326668093030400
+claim_boundary.one_step_only: true
+claim_boundary.effects_are_not_additive: true
+claim_boundary.contains_candidate: false
+claim_boundary.samples_entropy: false
+class.lower.minimum: 1 -> 0
+class.lower.relaxation_applied: true
+class.lower.relaxed_policy_sha256: sha256:f66f72f60b03d120d5237fb94d99400558190adf64373895b20d59a0ad59b3c7
+class.lower.relaxed_valid: 2590191421751894471483811677897490432000
+class.lower.added_if_relaxed: 4282773611815523203733351229397401600
+class.lower.baseline_share_of_relaxed: 49525148253325618764336927/49607171645069620101600410
+class.upper.minimum: 1 -> 0
+class.upper.relaxation_applied: true
+class.upper.relaxed_policy_sha256: sha256:d9aea82c7363586350c96d38bfeeb068a16e37d5dd046cd6862491877cd681d9
+class.upper.relaxed_valid: 2590191421751894471483811677897490432000
+class.upper.added_if_relaxed: 4282773611815523203733351229397401600
+class.upper.baseline_share_of_relaxed: 49525148253325618764336927/49607171645069620101600410
+class.digits.minimum: 1 -> 0
+class.digits.relaxation_applied: true
+class.digits.relaxed_policy_sha256: sha256:24211490f76d6401a6ed8b0c7fc9b81cf1c27f54f97d1b7828d61199aaa56c02
+class.digits.relaxed_valid: 2891420966978065359759264826870701490176
+class.digits.added_if_relaxed: 305512318837986411479186500202608459776
+class.digits.baseline_share_of_relaxed: 95240669717933882239109475/106492883857105814524235494
+class.punctuation.minimum: 1 -> 0
+class.punctuation.relaxation_applied: true
+class.punctuation.relaxed_policy_sha256: sha256:581412e02cafe460afd80ec605c9c15f19dc2211e4cb3f3c8ac9a9ad98f13305
+class.punctuation.relaxed_valid: 2586592148691837223404586015284894105600
+class.punctuation.added_if_relaxed: 683500551758275124507688616801075200
+class.punctuation.baseline_share_of_relaxed: 40636019079651789755353376/40646759885009387690458339

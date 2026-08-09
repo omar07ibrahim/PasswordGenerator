@@ -29,11 +29,11 @@
         "rendered from the real distribution attestation transcript",
         "canonical wheel, sdist rebuild, and installed smoke passed"
       ],
-      "bytes": 64764,
+      "bytes": 64609,
       "height": 466,
       "media_type": "image/png",
       "path": "docs/assets/distribution-check.png",
-      "sha256": "798a1faa56e02199dea7fd124a68289cd9e859ce8ee865dc62d3c67ce37db0df",
+      "sha256": "94102681b6738d934452942177c80f8836214404d6b2943a245e91c2c80c7a37",
       "width": 1600
     },
     {
@@ -45,7 +45,7 @@
       "height": 830,
       "media_type": "image/svg+xml",
       "path": "docs/assets/distribution-contract.svg",
-      "sha256": "3052222b9bccaa1ce8f4caa8fba126dce3d9f9e1b79feafcec03de38fec260c7",
+      "sha256": "54154065a9e09c12a89ddb289a4993aa9d93125af19eab6c36536e986a3e01e9",
       "width": 1960
     },
     {
@@ -86,14 +86,38 @@
     },
     {
       "assertions": [
+        "rendered from the real deterministic sensitivity transcript",
+        "candidate and entropy output explicitly absent"
+      ],
+      "bytes": 241296,
+      "height": 1366,
+      "media_type": "image/png",
+      "path": "docs/assets/policy-sensitivity-cli.png",
+      "sha256": "fd6ae25dc04e2fd6fb7df978fdd6f878159ac42f4e1ccd4b65b9bb8167d9d777",
+      "width": 1600
+    },
+    {
+      "assertions": [
+        "rendered from the exact canonical sensitivity JSON",
+        "one-step non-additive claim boundary is explicit"
+      ],
+      "bytes": 6404,
+      "height": 850,
+      "media_type": "image/svg+xml",
+      "path": "docs/assets/policy-sensitivity-impact.svg",
+      "sha256": "99e1d2175477aeb03dd26e590f635ee4b559460f8d5fc8e2f9655f04e2d123a8",
+      "width": 1800
+    },
+    {
+      "assertions": [
         "rendered from normalized real gate transcript",
         "all commands exited zero"
       ],
-      "bytes": 146744,
+      "bytes": 146545,
       "height": 1276,
       "media_type": "image/png",
       "path": "docs/assets/quality-gate.png",
-      "sha256": "2593bec5a192f0bea9e6eb6c1456eec9c207f5993aa16bf78746922a783ecbd1",
+      "sha256": "83dedd2137d070ac408ce5f2cf4d4daec8c0a5864778f5be97ee4c53fdd8bc45",
       "width": 1600
     },
     {
@@ -198,10 +222,10 @@
         "canonical path-free report from two real builds",
         "exact archive inventories and honest claim boundaries"
       ],
-      "bytes": 16006,
+      "bytes": 16007,
       "media_type": "application/json",
       "path": "docs/evidence/distribution-attestation.json",
-      "sha256": "a34928730fc6a8b26c9cb6143417eeaa541d4630435482540320ebd37dc886af"
+      "sha256": "8aa2f2f39d094579246e3ebb639f2b18bb3780de5d771fcdc26d53b422d79d6a"
     },
     {
       "assertions": [
@@ -211,7 +235,7 @@
       "bytes": 587,
       "media_type": "text/plain",
       "path": "docs/evidence/distribution-check.txt",
-      "sha256": "c5cc1fd5cf7ac05d395a2219fd5bb54945b8c6c76093ca530582981b3ba357ad"
+      "sha256": "84ae24160ecf50c62fd991144a5d27b5eda60a758e6cd40dbc7f62bd8dd7867c"
     },
     {
       "assertions": [
@@ -235,13 +259,33 @@
     },
     {
       "assertions": [
+        "real canonical CLI JSON",
+        "exact baseline, relaxed totals, additions, and reduced fractions"
+      ],
+      "bytes": 2801,
+      "media_type": "application/json",
+      "path": "docs/evidence/policy-sensitivity.json",
+      "sha256": "808ac07adc294b0455e389f92c2cd80d3f21e12bd8062104a02dd63c8640ce25"
+    },
+    {
+      "assertions": [
+        "real deterministic CLI text",
+        "one-step scope and non-additivity warning retained"
+      ],
+      "bytes": 2157,
+      "media_type": "text/plain",
+      "path": "docs/evidence/policy-sensitivity.txt",
+      "sha256": "a4562f0deee69ef0d513a9ea82511c236e498e90c54f0edfca1a1af01d583956"
+    },
+    {
+      "assertions": [
         "real normalized command output",
         "timing and absolute path absent"
       ],
       "bytes": 1874,
       "media_type": "text/plain",
       "path": "docs/evidence/quality-gate.txt",
-      "sha256": "eee52828dee5ac948054bbb5dd022f9a089359e729d3806b55b1cc4ce357d5df"
+      "sha256": "7312fd1c1370c5f523da86e0bdbe75289ce8a000762e29a1f7f0e5d6b907c3b8"
     },
     {
       "assertions": [
@@ -378,6 +422,18 @@
       ],
       "text_source_command": "PYTHONPATH=src python scripts/profile_complexity.py --format text"
     },
+    "policy_sensitivity": {
+      "baseline_valid": "2585908648140078948280078326668093030400",
+      "claim_boundary": {
+        "contains_candidate": false,
+        "effects_are_not_additive": true,
+        "one_step_only": true,
+        "samples_entropy": false
+      },
+      "json_source_command": "password-policy-lab sensitivity --length 20 --format json",
+      "rows": 4,
+      "text_source_command": "password-policy-lab sensitivity --length 20 --format text"
+    },
     "quality_gate": {
       "all_passed": true,
       "commands": [
@@ -421,7 +477,7 @@
   "source_files": [
     {
       "path": ".github/workflows/verify.yml",
-      "sha256": "13e2f9a83f8412fe4d363c3d55223f62691fc4bd68789bed262c47a9dc6ebba0"
+      "sha256": "75b57d682b99d80f31549e970921c4de2aebda0c5fc96d555b0509f84587265e"
     },
     {
       "path": "MANIFEST.in",
@@ -433,11 +489,11 @@
     },
     {
       "path": "PACKAGE.md",
-      "sha256": "0c58f616bdd464d40315197b7f5679cbd63f709a31925c3b887f12c5e1ae4dad"
+      "sha256": "96dface4635832d3b19e0b25871bf5bc77872028dc3f6eda79245972cef2d4e1"
     },
     {
       "path": "README.md",
-      "sha256": "020df58b304c5ec979102db332cc4b4764f2ea060ffdf68166ca03da184f00be"
+      "sha256": "fe5dc46861f12629621c0c8920ae14bf5d0710ba9bd21125c3c5c92545f33218"
     },
     {
       "path": "app.py",
@@ -453,7 +509,7 @@
     },
     {
       "path": "scripts/check_evidence.py",
-      "sha256": "463a03f06842f654f6e8077b40c888a34778892e3292af0e927d2b50c05454a6"
+      "sha256": "b7411fdcbad5d41b6a64d020d315bee8c2d5967119a42056930145853e73986b"
     },
     {
       "path": "scripts/distribution_contract.py",
@@ -461,11 +517,11 @@
     },
     {
       "path": "scripts/evidence_rendering.py",
-      "sha256": "bc55294f4ad8e0c22e4059b302a6681d572cba066c79c979406f833f176eb380"
+      "sha256": "268c857f1fad05a035f2d33ed207930cd1ac6ca114c5209abd884712cb795c32"
     },
     {
       "path": "scripts/generate_evidence.py",
-      "sha256": "a530f0a59091dd849d7fce029d52b44939e19719c3591420cfcfa1d5c22a7c0f"
+      "sha256": "fd71f1c16afdae8ff61c306580c729baea58bf942d065059baa513c3e053524c"
     },
     {
       "path": "scripts/profile_complexity.py",
@@ -473,7 +529,7 @@
     },
     {
       "path": "src/password_policy_lab/__init__.py",
-      "sha256": "23cb122fab42f49e6843c7ae6ea7bbcba7d9c0971e8f93e451fb9b6d0dc73efa"
+      "sha256": "be0a968ae6bead36da5fdee3307b92c9df2f6db4c3e6e740c87bf487e26b3c5c"
     },
     {
       "path": "src/password_policy_lab/__main__.py",
@@ -481,7 +537,7 @@
     },
     {
       "path": "src/password_policy_lab/cli.py",
-      "sha256": "2c417d5a5f941b8e1898e3d14626dcd9fc2277712367841f709a194ebd7e04fd"
+      "sha256": "aeee83f0e7514b94c79f0b2c9e82125132ae8b1f84422fc65ee4a97aca9a68c9"
     },
     {
       "path": "src/password_policy_lab/errors.py",
@@ -489,7 +545,7 @@
     },
     {
       "path": "src/password_policy_lab/inspection.py",
-      "sha256": "8af1f3703184acaf0524f2f57a8494128fb56ba8a6c48835f240565a5ce785b0"
+      "sha256": "8402114aa3633d15949e712480efedbcd5c806a1864407e74488136d608a8b3b"
     },
     {
       "path": "src/password_policy_lab/policy.py",
@@ -525,7 +581,7 @@
     },
     {
       "path": "tests/test_cli.py",
-      "sha256": "12e93f725e570849c588ec631968bf768dbde27121067a88617aef8cbc07ea54"
+      "sha256": "59c6d7adaf4a01975f9639c6ca916844839e070d7308a7e41b0321baa53d70e6"
     },
     {
       "path": "tests/test_complexity_profile.py",
@@ -533,7 +589,7 @@
     },
     {
       "path": "tests/test_complexity_rendering.py",
-      "sha256": "6fe89cdf5bfeb61fba87662ce70dec7a7f41d24ed8d6d3295321dec651a62ca7"
+      "sha256": "0164ba4ba34127c06f464e53738ad4d76d63205181c37b855d3037a9a82b3d9a"
     },
     {
       "path": "tests/test_counting.py",
@@ -549,7 +605,7 @@
     },
     {
       "path": "tests/test_evidence.py",
-      "sha256": "0f28070b81ff1e084d0eaa130b12f3cf61a949ca8d1c0372a8d5581aaa0c059c"
+      "sha256": "fd5f770e212eaf91ae8771e27518aee2df7f3b0d34f492e621d2770e16afaee0"
     },
     {
       "path": "tests/test_evidence_generation.py",
@@ -557,7 +613,7 @@
     },
     {
       "path": "tests/test_inspection.py",
-      "sha256": "cd6b77b4659b010e5925b3c112676c3a850da139404b5e4e3e84506ac22da74a"
+      "sha256": "f8ce8a4f0e1e1c4c59a8ef10edc4a3a613bb96f5d64c95b71a9c6fe22c306da7"
     },
     {
       "path": "tests/test_policy.py",

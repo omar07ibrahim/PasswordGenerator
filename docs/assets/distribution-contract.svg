@@ -34,7 +34,7 @@
     <text x="117" y="246" class="node-title">Immutable inputs</text>
     <text x="81" y="281" class="node-detail">
       <tspan x="81" dy="0">15 stage-zero Git blobs</tspan>
-      <tspan x="81" dy="24">sha256 bbb381861048c02e…</tspan>
+      <tspan x="81" dy="24">sha256 9f59263c22326a5d…</tspan>
       <tspan x="81" dy="24">normalized modes + mtime</tspan>
     </text>
   </g>  <g filter="url(#shadow)">
@@ -56,7 +56,7 @@
     <text x="867" y="186" class="node-title">Canonical wheel</text>
     <text x="831" y="221" class="node-detail">
       <tspan x="831" dy="0">17 exact members · 0644</tspan>
-      <tspan x="831" dy="24">sha256 180895b87076139e…</tspan>
+      <tspan x="831" dy="24">sha256 b3c577e6c851d29a…</tspan>
       <tspan x="831" dy="24">two raw wheels byte-equal</tspan>
     </text>
   </g>  <g filter="url(#shadow)">
@@ -67,7 +67,7 @@
     <text x="867" y="421" class="node-title">Canonical sdist</text>
     <text x="831" y="456" class="node-detail">
       <tspan x="831" dy="0">23 files + 6 directories</tspan>
-      <tspan x="831" dy="24">sha256 24c3db57d23e930f…</tspan>
+      <tspan x="831" dy="24">sha256 1b5c5670b69b41a5…</tspan>
       <tspan x="831" dy="24">raw sdist equality unclaimed</tspan>
     </text>
   </g>  <g filter="url(#shadow)">
