@@ -10,7 +10,7 @@ Success: no issues found in 30 source files
 $ PYTHONPATH=src python -m pytest --cov=password_policy_lab --cov-branch --cov-report=term-missing -q
 ................................................................................................................ [ 35%]
 ................................................................................................................ [ 70%]
-............................................................................................                     [100%]
+.............................................................................................                    [100%]
 ==================================================== tests coverage ====================================================
 ___________________________________ coverage: platform linux, python 3.12.3-final-0 ____________________________________
 
@@ -20,7 +20,7 @@ TOTAL     595      0    144      0   100%
 
 9 files skipped due to complete coverage.
 Required test coverage of 100.0% reached. Total coverage: 100.00%
-316 passed
+317 passed
 
 $ python scripts/attest_distribution.py
 distribution attestation: PASS (unofficial)

@@ -113,11 +113,11 @@
         "rendered from normalized real gate transcript",
         "all commands exited zero"
       ],
-      "bytes": 146545,
+      "bytes": 146344,
       "height": 1276,
       "media_type": "image/png",
       "path": "docs/assets/quality-gate.png",
-      "sha256": "83dedd2137d070ac408ce5f2cf4d4daec8c0a5864778f5be97ee4c53fdd8bc45",
+      "sha256": "5e5b436aea0168f4137a22c66aee0160e15495235b74caf0c0fc9dc88064d53c",
       "width": 1600
     },
     {
@@ -285,7 +285,7 @@
       "bytes": 1874,
       "media_type": "text/plain",
       "path": "docs/evidence/quality-gate.txt",
-      "sha256": "7312fd1c1370c5f523da86e0bdbe75289ce8a000762e29a1f7f0e5d6b907c3b8"
+      "sha256": "21909b2787b3dfbac2871b7a9528be4544e7807fa330b9f500fdae4c838a7e40"
     },
     {
       "assertions": [
@@ -505,7 +505,7 @@
     },
     {
       "path": "scripts/attest_distribution.py",
-      "sha256": "c38fc78ab2d6cdbd4c0c2acc6ea5d14229cf7826b760646aaae21a6c6b98296d"
+      "sha256": "75350b6598022f39fc637530b57537578ce9274418eefafcf9ae1985724a2fca"
     },
     {
       "path": "scripts/check_evidence.py",
@@ -513,7 +513,7 @@
     },
     {
       "path": "scripts/distribution_contract.py",
-      "sha256": "b1729fa0fd5c7808aaed12851dce76a3c1c7523aa5f9b435b8d5bfc6bc22570b"
+      "sha256": "12a5d12de3ff4b387dd693fe602dff9b956974f3f33d7131b37cfca84dca2c32"
     },
     {
       "path": "scripts/evidence_rendering.py",
@@ -597,11 +597,11 @@
     },
     {
       "path": "tests/test_distribution_attestation.py",
-      "sha256": "222d913d2ccc1afb65992acc29c8b0586699d0234fa483f1cd877ef4911e5c77"
+      "sha256": "87be0b56858f9a2c11c236eb21a7f16679e3b0d5d9bce02d34afc57b6b3af3fe"
     },
     {
       "path": "tests/test_distribution_contract.py",
-      "sha256": "d6f8761a03c6f48962aaef97e4a9955ffc8967488deb9ec11f76bc5263773854"
+      "sha256": "4a9d9c77ae2fb75ca509700092b16c5cffc80ae9b3de8c9ab45805a305658bf7"
     },
     {
       "path": "tests/test_evidence.py",
