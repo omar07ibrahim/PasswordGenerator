@@ -862,7 +862,7 @@ def test_materialize_canonical_sdist_writes_only_prevalidated_regular_files(
         destination / "src/password_policy_lab/__init__.py"
     ).read_bytes() == b'__version__ = "0.1.0"\n'
     assert all(
-        stat.S_IMODE(path.stat().st_mode) == (0o755 if path.is_dir() else 0o644)
+        stat.S_IMODE(path.stat().st_mode) == (0o700 if path.is_dir() else 0o600)
         for path in destination.rglob("*")
     )
     _assert_rejected(

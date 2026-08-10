@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import stat
 import sys
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -18,7 +19,13 @@ class _IndexEntry(Protocol):
     object_id: str
 
 
+class _SourceFile(Protocol):
+    path: str
+    data: bytes
+
+
 class _SourceState(Protocol):
+    files: tuple[_SourceFile, ...]
     tree: str
 
 
@@ -57,6 +64,12 @@ class _Attester(Protocol):
     def _validate_working_package_inventory(self, repository: Path) -> None: ...
 
     def _collect_source(self, repository: Path) -> _SourceState: ...
+
+    def _materialize_snapshot(
+        self,
+        destination: Path,
+        source: _SourceState,
+    ) -> None: ...
 
     def _artifact_document(self, record: object) -> dict[str, object]: ...
 
@@ -270,6 +283,35 @@ def test_source_collection_reads_only_the_immutable_index_tree(
 
     assert source.tree == source_tree
     assert tree_targets == [source_tree]
+
+
+def test_source_snapshot_materialization_is_owner_only(tmp_path: Path) -> None:
+    source = cast(
+        _SourceState,
+        SimpleNamespace(
+            files=(
+                SimpleNamespace(path="pyproject.toml", data=b"project"),
+                SimpleNamespace(
+                    path="src/password_policy_lab/__init__.py",
+                    data=b"package",
+                ),
+            ),
+            tree="4" * 40,
+        ),
+    )
+    destination = tmp_path / "snapshot"
+
+    attest_distribution._materialize_snapshot(destination, source)
+
+    assert (destination / "pyproject.toml").read_bytes() == b"project"
+    assert (
+        destination / "src/password_policy_lab/__init__.py"
+    ).read_bytes() == b"package"
+    paths = (destination, *destination.rglob("*"))
+    assert all(
+        stat.S_IMODE(path.stat().st_mode) == (0o700 if path.is_dir() else 0o600)
+        for path in paths
+    )
 
 
 def test_input_digest_is_order_independent_but_boundary_sensitive() -> None:

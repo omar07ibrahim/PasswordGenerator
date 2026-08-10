@@ -729,20 +729,19 @@ def _repository_argument(raw_path: str) -> Path:
 
 def _materialize_snapshot(destination: Path, source: SourceState) -> None:
     try:
-        destination.mkdir(mode=0o755, exist_ok=False)
+        destination.mkdir(mode=0o700, exist_ok=False)
         for source_file in source.files:
             output = destination.joinpath(*source_file.path.split("/"))
-            output.parent.mkdir(parents=True, mode=0o755, exist_ok=True)
+            output.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
             descriptor = os.open(
                 output,
                 os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
-                0o644,
+                0o600,
             )
             with os.fdopen(descriptor, "wb", closefd=True) as stream:
                 stream.write(source_file.data)
                 stream.flush()
                 os.fsync(stream.fileno())
-            os.chmod(output, 0o644, follow_symlinks=False)
             os.utime(
                 output,
                 (FIXED_MTIME, FIXED_MTIME),
@@ -757,7 +756,7 @@ def _materialize_snapshot(destination: Path, source: SourceState) -> None:
             key=lambda item: len(item.parts),
             reverse=True,
         ):
-            os.chmod(directory, 0o755, follow_symlinks=False)
+            os.chmod(directory, 0o700, follow_symlinks=False)
             os.utime(
                 directory,
                 (FIXED_MTIME, FIXED_MTIME),

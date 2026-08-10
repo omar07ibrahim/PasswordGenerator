@@ -272,13 +272,12 @@ def materialize_canonical_sdist(
     temporary: Path | None = None
     try:
         _require_absent(target)
-        parent.mkdir(parents=True, exist_ok=True)
+        parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         temporary = Path(tempfile.mkdtemp(prefix=".sdist-materialize-", dir=parent))
-        os.chmod(temporary, 0o755)
         for relative in files:
             full_name = f"{SDIST_ROOT}/{relative}"
             output = temporary.joinpath(*relative.split("/"))
-            output.parent.mkdir(parents=True, exist_ok=True, mode=0o755)
+            output.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
             _verify_materialized_parent(temporary, output.parent)
             descriptor = os.open(
                 output,
@@ -292,7 +291,6 @@ def materialize_canonical_sdist(
                     stream.write(inspected.payloads[full_name])
                     stream.flush()
                     os.fsync(stream.fileno())
-                os.chmod(output, 0o644, follow_symlinks=False)
             finally:
                 if descriptor >= 0:
                     os.close(descriptor)
@@ -301,7 +299,7 @@ def materialize_canonical_sdist(
             key=lambda item: len(item.parts),
             reverse=True,
         ):
-            os.chmod(directory, 0o755, follow_symlinks=False)
+            os.chmod(directory, 0o700, follow_symlinks=False)
         os.replace(temporary, target)
         temporary = None
     except DistributionContractError:
@@ -870,7 +868,7 @@ def _require_canonical_bytes(observed: bytes, expected: bytes) -> None:
 
 
 def _atomic_output(path: Path, writer: Callable[[BinaryIO], None]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     descriptor, temporary_name = tempfile.mkstemp(
         prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
     )
@@ -880,7 +878,6 @@ def _atomic_output(path: Path, writer: Callable[[BinaryIO], None]) -> None:
             writer(stream)
             stream.flush()
             os.fsync(stream.fileno())
-        os.chmod(temporary, 0o644, follow_symlinks=False)
         if temporary.stat(follow_symlinks=False).st_size > MAX_OUTER_SIZE:
             _reject("archive-too-large")
         os.replace(temporary, path)
